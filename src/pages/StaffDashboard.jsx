@@ -45,6 +45,23 @@ export default function StaffDashboard() {
   const [modalForm, setModalForm] = useState(MODAL_BLANK)
   const [modalLoading, setModalLoading] = useState(false)
 
+  // --- Theme Light/Dark Mode Logic ---
+  const [theme, setTheme] = useState(localStorage.getItem('staff-theme') || 'dark');
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('staff-theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+  // ------------------------------------
   useEffect(() => {
     if (!staffToken) { navigate('/'); return }
     loadData()
@@ -355,9 +372,14 @@ export default function StaffDashboard() {
               <span className="material-symbols-outlined text-base">language</span>
               <span>{lang === 'en' ? 'AR' : 'EN'}</span>
             </button>
-            <button onClick={loadData} className="glass px-4 py-2 rounded-xl text-secondary-fixed text-xs font-bold flex items-center gap-1 hover:border-secondary-fixed/50 transition-all">
-              <span className="material-symbols-outlined text-base">refresh</span>
-              <span className="hidden sm:block">{t('Refresh', 'تحديث')}</span>
+           <button
+               onClick={toggleTheme}
+                title={theme === 'dark' ? t('Switch to Light Mode', 'تفعيل الوضع المضيء') : t('Switch to Dark Mode', 'تفعيل الوضع المظلم')}
+                className="glass w-10 h-10 rounded-xl text-secondary-fixed flex items-center justify-center hover:border-secondary-fixed/50 transition-all"
+              >
+                  <span className="material-symbols-outlined text-xl">
+                    {theme === 'dark' ? 'light_mode' : 'dark_mode'}
+                  </span>
             </button>
             <button onClick={staffLogout} className="glass px-4 py-2 rounded-xl text-error text-xs font-bold flex items-center gap-1 hover:bg-error/5 transition-all">
               <span className="material-symbols-outlined text-base">logout</span>
