@@ -340,11 +340,11 @@ export default function StaffDashboard() {
   return (
     <div className="min-h-screen bg-background">
       {/* Staff top bar */}
-      <header className="fixed top-0 w-full z-50 glass-high border-b border-secondary-container/20 shadow-lg">
-        <div className="max-w-7xl mx-auto flex justify-between items-center h-16 px-4 md:px-6">
+      <header className="fixed top-0 w-full z-50 bg-background/95 backdrop-blur-xl shadow-sm">
+        <div className="max-w-7xl mx-auto flex justify-between items-center h-14 px-4 md:px-6">
           <div className="flex items-center gap-3">
-            <span className="font-display font-extrabold text-2xl tracking-tight text-secondary-fixed">Rasha</span>
-            <span className="hidden md:block h-5 w-px bg-outline-variant/40 mx-1" />
+            <span className="font-display font-extrabold text-xl tracking-tight text-secondary-fixed">Rasha</span>
+            <span className="hidden md:block h-4 w-px bg-outline-variant/40 mx-1" />
             <span className="hidden md:block text-xs text-on-surface-variant font-semibold uppercase tracking-widest">{t('Staff Portal', 'بوابة الموظفين')}</span>
           </div>
           <div className="flex gap-2">
@@ -367,7 +367,7 @@ export default function StaffDashboard() {
         </div>
       </header>
 
-      <div className="pt-24 pb-10 max-w-7xl mx-auto px-4 md:px-6">
+      <div className="pt-16 pb-10 max-w-7xl mx-auto px-4 md:px-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
           <div>

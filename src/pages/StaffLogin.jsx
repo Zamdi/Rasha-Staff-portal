@@ -31,7 +31,7 @@ export default function StaffLogin() {
   return (
     <div className="min-h-screen flex flex-col bg-surface">
       {/* Header */}
-      <header className="w-full flex justify-between items-center px-6 h-16 glass-high border-b border-secondary-fixed/20">
+      <header className="w-full flex justify-between items-center px-6 h-14 bg-background/95 backdrop-blur-xl shadow-sm">
         <span className="font-display font-extrabold text-2xl tracking-tight text-secondary-fixed">Rasha</span>
         <button onClick={toggleLang} className="flex items-center gap-1 text-secondary-fixed text-xs font-bold hover:opacity-80 transition-opacity">
           <span className="material-symbols-outlined text-base">language</span>
