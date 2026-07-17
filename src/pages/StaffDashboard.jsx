@@ -373,13 +373,18 @@ export default function StaffDashboard() {
               <span>{lang === 'en' ? 'AR' : 'EN'}</span>
             </button>
            <button
-               onClick={toggleTheme}
-                title={theme === 'dark' ? t('Switch to Light Mode', 'تفعيل الوضع المضيء') : t('Switch to Dark Mode', 'تفعيل الوضع المظلم')}
-                className="glass w-10 h-10 rounded-xl text-secondary-fixed flex items-center justify-center hover:border-secondary-fixed/50 transition-all"
+              onClick={toggleTheme}
+              title={theme === 'dark' ? t('Switch to Light Mode', 'تفعيل الوضع المضيء') : t('Switch to Dark Mode', 'تفعيل الوضع المظلم')}
+              className="glass w-10 h-10 rounded-xl flex items-center justify-center hover:border-secondary-fixed/50 transition-all"
+            >
+              <span 
+                className={`material-symbols-outlined text-xl transition-colors duration-300 ${
+                  theme === 'dark' ? 'text-secondary-fixed-dim' : 'text-amber-400'
+                }`}
+                style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}
               >
-                  <span className="material-symbols-outlined text-xl">
-                    {theme === 'dark' ? 'light_mode' : 'dark_mode'}
-                  </span>
+                {theme === 'dark' ? 'light_mode' : 'dark_mode'}
+              </span>
             </button>
             <button onClick={staffLogout} className="glass px-4 py-2 rounded-xl text-error text-xs font-bold flex items-center gap-1 hover:bg-error/5 transition-all">
               <span className="material-symbols-outlined text-base">logout</span>
