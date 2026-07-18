@@ -73,7 +73,8 @@ html.light {
 }
 
 @layer base {
-  body { @apply bg-background text-on-surface; font-family: 'Inter', sans-serif; }
+  body { @apply bg-background text-on-surface; font-family: 'Inter', sans-serif;
+    transition: background-color 0.3s, color 0.3s; }
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
   ::-webkit-scrollbar-thumb { background: var(--color-secondary-fixed); border-radius: 10px; }

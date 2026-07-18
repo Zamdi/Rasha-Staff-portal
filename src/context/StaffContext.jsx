@@ -7,7 +7,7 @@ export const API = 'https://rasha-backend.onrender.com'
 export function StaffProvider({ children }) {
   const [lang, setLang] = useState('en')
   const [toast, setToast] = useState(null)
-  const [theme, setThemeState] = useState(() => localStorage.getItem('rasha_theme') || 'dark')
+  const [theme, setThemeState] = useState(() => localStorage.getItem('rasha_theme') || 'light')
   const [staffToken, setStaffTokenState] = useState(() => localStorage.getItem('rasha_staff_token'))
   const [staffRole, setStaffRole] = useState(() => localStorage.getItem('rasha_staff_role') || 'staff')
   const [staffPermissions, setStaffPermissions] = useState(() => {
@@ -16,13 +16,24 @@ export function StaffProvider({ children }) {
   const [staffName, setStaffName] = useState(() => localStorage.getItem('rasha_staff_name') || '')
 
   useEffect(() => {
-    if (theme === 'light') {
-      document.documentElement.classList.add('light')
-      document.documentElement.classList.remove('dark')
-    } else {
-      document.documentElement.classList.remove('light')
-      document.documentElement.classList.add('dark')
-    }
+    const root = document.documentElement
+    const body = document.body
+    const isLight = theme === 'light'
+    if (isLight) { root.classList.add('light'); root.classList.remove('dark') }
+    else { root.classList.remove('light'); root.classList.add('dark') }
+    const bg = isLight ? '#f4f1ec' : '#101415'
+    const fg = isLight ? '#1a1a18' : '#e0e3e5'
+    root.style.backgroundColor = bg; root.style.color = fg
+    body.style.backgroundColor = bg; body.style.color = fg
+    const metaTheme = document.getElementById('theme-meta')
+    if (metaTheme) metaTheme.setAttribute('content', bg)
+    body.style.willChange = 'background-color, color'
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        void root.offsetHeight; void root.offsetWidth
+        body.style.willChange = 'auto'
+      })
+    })
     localStorage.setItem('rasha_theme', theme)
   }, [theme])
 

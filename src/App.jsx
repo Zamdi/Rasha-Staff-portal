@@ -10,9 +10,15 @@ function ProtectedRoute({ children }) {
   return staffToken ? children : <Navigate to="/" replace />
 }
 
-function AppRoutes() {
+function AppShell() {
+  const { theme } = useStaff()
   return (
-    <>
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: theme === 'light' ? '#f4f1ec' : '#101415',
+      color: theme === 'light' ? '#1a1a18' : '#e0e3e5',
+      transition: 'background-color 0.3s, color 0.3s',
+    }}>
       <ScrollToTop />
       <Toast />
       <Routes>
@@ -22,7 +28,7 @@ function AppRoutes() {
         } />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </>
+    </div>
   )
 }
 
@@ -30,7 +36,7 @@ export default function App() {
   return (
     <StaffProvider>
       <BrowserRouter>
-        <AppRoutes />
+        <AppShell />
       </BrowserRouter>
     </StaffProvider>
   )
