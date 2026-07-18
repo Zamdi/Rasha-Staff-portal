@@ -7,12 +7,27 @@ export const API = 'https://rasha-backend.onrender.com'
 export function StaffProvider({ children }) {
   const [lang, setLang] = useState('en')
   const [toast, setToast] = useState(null)
+  const [theme, setThemeState] = useState(() => localStorage.getItem('rasha_theme') || 'dark')
   const [staffToken, setStaffTokenState] = useState(() => localStorage.getItem('rasha_staff_token'))
   const [staffRole, setStaffRole] = useState(() => localStorage.getItem('rasha_staff_role') || 'staff')
   const [staffPermissions, setStaffPermissions] = useState(() => {
     try { return JSON.parse(localStorage.getItem('rasha_staff_perms') || '{}') } catch { return {} }
   })
   const [staffName, setStaffName] = useState(() => localStorage.getItem('rasha_staff_name') || '')
+
+  useEffect(() => {
+    if (theme === 'light') {
+      document.documentElement.classList.add('light')
+      document.documentElement.classList.remove('dark')
+    } else {
+      document.documentElement.classList.remove('light')
+      document.documentElement.classList.add('dark')
+    }
+    localStorage.setItem('rasha_theme', theme)
+  }, [theme])
+
+  const toggleTheme = () => setThemeState(t => t === 'dark' ? 'light' : 'dark')
+  const isDark = theme === 'dark'
 
   const toggleLang = () => {
     const next = lang === 'en' ? 'ar' : 'en'
@@ -58,7 +73,7 @@ export function StaffProvider({ children }) {
     <StaffContext.Provider value={{
       lang, toggleLang, t, toast, showToast,
       staffToken, setStaffToken, staffRole, staffPermissions, staffName,
-      isSuperAdmin, hasPerm
+      isSuperAdmin, hasPerm, theme, toggleTheme, isDark
     }}>
       {children}
     </StaffContext.Provider>

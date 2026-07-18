@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStaff, API } from '../context/StaffContext'
 import jsQR from 'jsqr'
 import { formatTime } from '../utils/format'
+import ThemeToggle from '../components/ThemeToggle'
 
 const INVENTORY = [
   { name_en: 'Car Shampoo', name_ar: 'شامبو السيارة', pct: 15, color: 'bg-error' },
@@ -45,23 +46,6 @@ export default function StaffDashboard() {
   const [modalForm, setModalForm] = useState(MODAL_BLANK)
   const [modalLoading, setModalLoading] = useState(false)
 
-  // --- Theme Light/Dark Mode Logic ---
-  const [theme, setTheme] = useState(localStorage.getItem('staff-theme') || 'dark');
-
-  useEffect(() => {
-    const root = window.document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-    localStorage.setItem('staff-theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-  };
-  // ------------------------------------
   useEffect(() => {
     if (!staffToken) { navigate('/'); return }
     loadData()
@@ -364,7 +348,8 @@ export default function StaffDashboard() {
             <span className="hidden md:block h-4 w-px bg-outline-variant/40 mx-1" />
             <span className="hidden md:block text-xs text-on-surface-variant font-semibold uppercase tracking-widest">{t('Staff Portal', 'بوابة الموظفين')}</span>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <ThemeToggle />
             <button
               onClick={toggleLang}
               className="glass px-3 py-2 rounded-xl text-secondary-fixed text-xs font-bold flex items-center gap-1 hover:border-secondary-fixed/50 transition-all"
@@ -372,19 +357,9 @@ export default function StaffDashboard() {
               <span className="material-symbols-outlined text-base">language</span>
               <span>{lang === 'en' ? 'AR' : 'EN'}</span>
             </button>
-           <button
-              onClick={toggleTheme}
-              title={theme === 'dark' ? t('Switch to Light Mode', 'تفعيل الوضع المضيء') : t('Switch to Dark Mode', 'تفعيل الوضع المظلم')}
-              className="glass w-10 h-10 rounded-xl flex items-center justify-center hover:border-secondary-fixed/50 transition-all"
-            >
-              <span 
-                className={`material-symbols-outlined text-xl transition-colors duration-300 ${
-                  theme === 'dark' ? 'text-secondary-fixed-dim' : 'text-amber-400'
-                }`}
-                style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}
-              >
-                {theme === 'dark' ? 'light_mode' : 'dark_mode'}
-              </span>
+            <button onClick={loadData} className="glass px-4 py-2 rounded-xl text-secondary-fixed text-xs font-bold flex items-center gap-1 hover:border-secondary-fixed/50 transition-all">
+              <span className="material-symbols-outlined text-base">refresh</span>
+              <span className="hidden sm:block">{t('Refresh', 'تحديث')}</span>
             </button>
             <button onClick={staffLogout} className="glass px-4 py-2 rounded-xl text-error text-xs font-bold flex items-center gap-1 hover:bg-error/5 transition-all">
               <span className="material-symbols-outlined text-base">logout</span>

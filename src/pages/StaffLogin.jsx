@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStaff, API } from '../context/StaffContext'
+import ThemeToggle from '../components/ThemeToggle'
 
 export default function StaffLogin() {
   const { t, setStaffToken, showToast, lang, toggleLang } = useStaff()
@@ -33,10 +34,13 @@ export default function StaffLogin() {
       {/* Header */}
       <header className="w-full flex justify-between items-center px-6 h-14 bg-background/95 backdrop-blur-xl shadow-sm">
         <span className="font-display font-extrabold text-2xl tracking-tight text-secondary-fixed">Rasha</span>
-        <button onClick={toggleLang} className="flex items-center gap-1 text-secondary-fixed text-xs font-bold hover:opacity-80 transition-opacity">
-          <span className="material-symbols-outlined text-base">language</span>
-          <span>{lang === 'en' ? 'AR' : 'EN'}</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <button onClick={toggleLang} className="flex items-center gap-1 text-secondary-fixed text-xs font-bold hover:opacity-80 transition-opacity">
+            <span className="material-symbols-outlined text-base">language</span>
+            <span>{lang === 'en' ? 'AR' : 'EN'}</span>
+          </button>
+        </div>
       </header>
 
       <div className="flex-grow flex items-center justify-center px-4 py-10">
