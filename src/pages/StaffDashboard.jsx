@@ -385,7 +385,7 @@ export default function StaffDashboard() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 p-1 rounded-xl w-fit" style={{ background: '#1d2022', border: '1px solid rgba(66,71,82,0.4)' }}>
+        <div className="flex gap-1 mb-6 p-1 rounded-xl w-fit" style={{ background: 'var(--color-surface-container)', border: '1px solid var(--color-outline-variant)' }}>
           {[
             ['dashboard', 'dashboard', t('Dashboard', 'اللوحة'), null, true],
             ['customers', 'group', t('Customers', 'العملاء'), null, true],
@@ -404,7 +404,7 @@ export default function StaffDashboard() {
               <span className="hidden sm:block">{label}</span>
               {badge > 0 && (
                 <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-white font-extrabold px-1"
-                  style={{ background: '#e53935', fontSize: '10px', boxShadow: '0 0 0 2px #1d2022', lineHeight: 1 }}>
+                  style={{ background: '#e53935', fontSize: '10px', boxShadow: '0 0 0 2px var(--color-background)', lineHeight: 1 }}>
                   {badge > 99 ? '99+' : badge}
                 </span>
               )}
@@ -429,9 +429,9 @@ export default function StaffDashboard() {
                     searchTimeout.current = setTimeout(() => loadAllCustomers(e.target.value), 400)
                   }}
                   className="w-full pl-10 pr-4 py-3 rounded-xl text-on-surface text-sm focus:outline-none"
-                  style={{ background: '#1d2022', border: '1px solid rgba(66,71,82,0.4)' }}
+                  style={{ background: 'var(--color-surface-container)', border: '1px solid var(--color-outline-variant)' }}
                   onFocus={e => e.target.style.borderColor = '#74f5ff'}
-                  onBlur={e => e.target.style.borderColor = 'rgba(66,71,82,0.4)'}
+                  onBlur={e => e.target.style.borderColor = 'var(--input-border)'}
                 />
               </div>
               <button onClick={openAddModal} className="hydro-gradient px-5 py-3 rounded-xl text-white text-xs font-bold flex items-center gap-2 hover:opacity-90 transition-opacity shrink-0 cyan-glow">
@@ -462,7 +462,7 @@ export default function StaffDashboard() {
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm" dir="ltr">
-                    <thead style={{ background: 'rgba(39,42,44,0.4)' }}>
+                    <thead style={{ background: 'var(--color-surface-container-high)' }}>
                       <tr>
                         {[t('Customer','العميل'), t('ID','الرمز'), t('Phone','الهاتف'), t('Stamps','الطوابع'), t('Washes','الغسيلات'), t('Status','الحالة'), t('Joined','الانضمام'), ''].map(h => (
                           <th key={h} className="px-4 py-3 text-left text-xs text-on-surface-variant uppercase font-semibold whitespace-nowrap">{h}</th>
@@ -686,7 +686,7 @@ export default function StaffDashboard() {
                   </div>
 
                   {/* Stamps visual */}
-                  <div className="rounded-xl p-4" style={{ background: '#272a2c', border: '1px solid rgba(66,71,82,0.3)' }}>
+                  <div className="rounded-xl p-4" style={{ background: 'var(--input-bg)', border: '1px solid var(--color-outline-variant)' }}>
                     <div className="flex justify-between items-center mb-3">
                       <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">{t('Loyalty Stamps', 'طوابع الولاء')}</p>
                       <span className="text-secondary-fixed font-extrabold text-lg font-display" dir="ltr" style={{unicodeBidi:'embed'}}>{customer.stamps}/5</span>
@@ -759,7 +759,7 @@ export default function StaffDashboard() {
                       [t('Free Used', 'مجاني مستخدم'), customer.free_washes_used ?? 0],
                       [t('Bookings', 'الحجوزات'), customer.booking_count ?? 0],
                     ].map(([label, val]) => (
-                      <div key={label} className="rounded-xl py-3 px-2" style={{ background: '#272a2c', border: '1px solid rgba(66,71,82,0.3)' }}>
+                      <div key={label} className="rounded-xl py-3 px-2" style={{ background: 'var(--input-bg)', border: '1px solid var(--color-outline-variant)' }}>
                         <p className="text-secondary-fixed font-bold text-xl font-display">{val}</p>
                         <p className="text-on-surface-variant text-xs mt-0.5">{label}</p>
                       </div>
@@ -882,7 +882,7 @@ export default function StaffDashboard() {
       {/* Add/Edit Customer Modal */}
       {showModal && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-md rounded-2xl p-6 animate-fade-in" style={{ background: '#1d2022', border: '1px solid rgba(116,245,255,0.15)' }}>
+          <div className="w-full max-w-md rounded-2xl p-6 animate-fade-in" style={{ background: 'var(--color-surface-container)', border: '1px solid rgba(116,245,255,0.15)' }}>
             <div className="flex justify-between items-center mb-6">
               <h3 className="font-bold text-on-surface text-lg font-display">
                 {modalMode === 'add' ? t('Add Customer', 'إضافة عميل') : t('Edit Customer', 'تعديل العميل')}
@@ -895,42 +895,42 @@ export default function StaffDashboard() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 block">{t('First Name', 'الاسم الأول')} *</label>
-                  <input className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none" style={{ background: '#272a2c', border: '1px solid #424752' }}
+                  <input className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none" style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
                     value={modalForm.firstName} onChange={e => setModalForm(f => ({...f, firstName: e.target.value}))}
-                    onFocus={e => e.target.style.borderColor='#74f5ff'} onBlur={e => e.target.style.borderColor='#424752'} />
+                    onFocus={e => e.target.style.borderColor='#74f5ff'} onBlur={e => e.target.style.borderColor='var(--input-border)'} />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 block">{t('Last Name', 'اسم العائلة')} *</label>
-                  <input className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none" style={{ background: '#272a2c', border: '1px solid #424752' }}
+                  <input className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none" style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
                     value={modalForm.lastName} onChange={e => setModalForm(f => ({...f, lastName: e.target.value}))}
-                    onFocus={e => e.target.style.borderColor='#74f5ff'} onBlur={e => e.target.style.borderColor='#424752'} />
+                    onFocus={e => e.target.style.borderColor='#74f5ff'} onBlur={e => e.target.style.borderColor='var(--input-border)'} />
                 </div>
               </div>
               <div>
                 <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 block">{t('Email', 'البريد الإلكتروني')} *</label>
-                <input type="email" className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none" style={{ background: '#272a2c', border: '1px solid #424752' }}
+                <input type="email" className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none" style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
                   value={modalForm.email} onChange={e => setModalForm(f => ({...f, email: e.target.value}))}
-                  onFocus={e => e.target.style.borderColor='#74f5ff'} onBlur={e => e.target.style.borderColor='#424752'} />
+                  onFocus={e => e.target.style.borderColor='#74f5ff'} onBlur={e => e.target.style.borderColor='var(--input-border)'} />
               </div>
               <div>
                 <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 block">{t('Phone', 'الهاتف')} *</label>
                 <div className="flex">
-                  <span className="px-3 py-2.5 text-sm text-on-surface-variant flex items-center shrink-0 rounded-s-lg" style={{ background: '#323537', border: '1px solid #424752', borderRight: 'none' }}>+249</span>
-                  <input type="tel" className="flex-1 px-3 py-2.5 rounded-e-lg text-on-surface text-sm focus:outline-none" style={{ background: '#272a2c', border: '1px solid #424752' }}
+                  <span className="px-3 py-2.5 text-sm text-on-surface-variant flex items-center shrink-0 rounded-s-lg" style={{ background: 'var(--color-surface-variant)', border: '1px solid var(--input-border)', borderRight: 'none' }}>+249</span>
+                  <input type="tel" className="flex-1 px-3 py-2.5 rounded-e-lg text-on-surface text-sm focus:outline-none" style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
                     value={modalForm.phone} onChange={e => setModalForm(f => ({...f, phone: e.target.value.replace(/\D/g,'')}))}
-                    onFocus={e => e.target.style.borderColor='#74f5ff'} onBlur={e => e.target.style.borderColor='#424752'} />
+                    onFocus={e => e.target.style.borderColor='#74f5ff'} onBlur={e => e.target.style.borderColor='var(--input-border)'} />
                 </div>
               </div>
               <div>
                 <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 block">
                   {t('Password', 'كلمة المرور')} {modalMode === 'edit' ? t('(leave blank to keep)', '(اتركه لعدم التغيير)') : '*'}
                 </label>
-                <input type="password" className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none" style={{ background: '#272a2c', border: '1px solid #424752' }}
+                <input type="password" className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none" style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}
                   value={modalForm.password} onChange={e => setModalForm(f => ({...f, password: e.target.value}))}
-                  onFocus={e => e.target.style.borderColor='#74f5ff'} onBlur={e => e.target.style.borderColor='#424752'} />
+                  onFocus={e => e.target.style.borderColor='#74f5ff'} onBlur={e => e.target.style.borderColor='var(--input-border)'} />
               </div>
               <div className="flex gap-3 pt-2">
-                <button onClick={() => setShowModal(false)} className="flex-1 py-3 rounded-xl text-on-surface-variant font-bold text-sm transition-colors hover:bg-surface-variant" style={{ background: '#272a2c', border: '1px solid #424752' }}>
+                <button onClick={() => setShowModal(false)} className="flex-1 py-3 rounded-xl text-on-surface-variant font-bold text-sm transition-colors hover:bg-surface-variant" style={{ background: 'var(--input-bg)', border: '1px solid var(--input-border)' }}>
                   {t('Cancel', 'إلغاء')}
                 </button>
                 <button onClick={submitModal} disabled={modalLoading} className="flex-1 py-3 rounded-xl font-bold text-sm hydro-gradient text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
@@ -1023,7 +1023,7 @@ export default function StaffDashboard() {
       {/* Add/Edit Staff Modal */}
       {showStaffModal && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-lg rounded-2xl p-6 animate-fade-in overflow-y-auto max-h-[90vh]" style={{ background: '#1d2022', border: '1px solid rgba(116,245,255,0.15)' }}>
+          <div className="w-full max-w-lg rounded-2xl p-6 animate-fade-in overflow-y-auto max-h-[90vh]" style={{ background: 'var(--color-surface-container)', border: '1px solid rgba(116,245,255,0.15)' }}>
             <div className="flex justify-between items-center mb-6">
               <h3 className="font-bold text-on-surface text-lg font-display">
                 {staffModalMode === 'add' ? t('Add Staff Member', 'إضافة موظف') : t('Edit Staff Member', 'تعديل موظف')}
@@ -1035,25 +1035,25 @@ export default function StaffDashboard() {
             <div className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 block">{t('Display Name', 'الاسم المعروض')}</label>
-                <input className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none" style={{ background:'#272a2c', border:'1px solid #424752' }}
+                <input className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none" style={{ background:'var(--input-bg)', border:'1px solid var(--input-border)' }}
                   value={staffModalData.displayName} onChange={e=>setStaffModalData(d=>({...d,displayName:e.target.value}))}
-                  onFocus={e=>e.target.style.borderColor='#74f5ff'} onBlur={e=>e.target.style.borderColor='#424752'} />
+                  onFocus={e=>e.target.style.borderColor='#74f5ff'} onBlur={e=>e.target.style.borderColor='var(--input-border)'} />
               </div>
               {staffModalMode === 'add' && (
                 <div>
                   <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 block">{t('Username', 'اسم المستخدم')} *</label>
-                  <input className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none" style={{ background:'#272a2c', border:'1px solid #424752' }}
+                  <input className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none" style={{ background:'var(--input-bg)', border:'1px solid var(--input-border)' }}
                     value={staffModalData.username} onChange={e=>setStaffModalData(d=>({...d,username:e.target.value}))}
-                    onFocus={e=>e.target.style.borderColor='#74f5ff'} onBlur={e=>e.target.style.borderColor='#424752'} />
+                    onFocus={e=>e.target.style.borderColor='#74f5ff'} onBlur={e=>e.target.style.borderColor='var(--input-border)'} />
                 </div>
               )}
               <div>
                 <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 block">
                   {t('Password', 'كلمة المرور')} {staffModalMode==='edit'?t('(leave blank to keep)','(اتركه للإبقاء)'):'*'}
                 </label>
-                <input type="password" className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none" style={{ background:'#272a2c', border:'1px solid #424752' }}
+                <input type="password" className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none" style={{ background:'var(--input-bg)', border:'1px solid var(--input-border)' }}
                   value={staffModalData.password} onChange={e=>setStaffModalData(d=>({...d,password:e.target.value}))}
-                  onFocus={e=>e.target.style.borderColor='#74f5ff'} onBlur={e=>e.target.style.borderColor='#424752'} />
+                  onFocus={e=>e.target.style.borderColor='#74f5ff'} onBlur={e=>e.target.style.borderColor='var(--input-border)'} />
               </div>
               {/* Permissions */}
               <div>
@@ -1069,7 +1069,7 @@ export default function StaffDashboard() {
                     ['view_messages',    t('View Support Messages',         'عرض رسائل الدعم')],
                   ].map(([key, label]) => (
                     <label key={key} className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-surface-container transition-colors"
-                      style={{ background: staffModalData.permissions[key] ? 'rgba(0,86,179,0.1)' : '#272a2c', border: `1px solid ${staffModalData.permissions[key] ? 'rgba(116,245,255,0.3)' : '#424752'}` }}>
+                      style={{ background: staffModalData.permissions[key] ? 'rgba(0,86,179,0.1)' : 'var(--input-bg)', border: `1px solid ${staffModalData.permissions[key] ? 'rgba(116,245,255,0.3)' : 'var(--input-border)'}` }}>
                       <input type="checkbox" checked={!!staffModalData.permissions[key]}
                         onChange={e=>setStaffModalData(d=>({...d,permissions:{...d.permissions,[key]:e.target.checked}}))}
                         style={{ accentColor:'#00f1fe', width:'16px', height:'16px' }} />
@@ -1079,7 +1079,7 @@ export default function StaffDashboard() {
                 </div>
               </div>
               <div className="flex gap-3 pt-2">
-                <button onClick={()=>setShowStaffModal(false)} className="flex-1 py-3 rounded-xl text-on-surface-variant font-bold text-sm" style={{background:'#272a2c',border:'1px solid #424752'}}>
+                <button onClick={()=>setShowStaffModal(false)} className="flex-1 py-3 rounded-xl text-on-surface-variant font-bold text-sm" style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}>
                   {t('Cancel','إلغاء')}
                 </button>
                 <button
