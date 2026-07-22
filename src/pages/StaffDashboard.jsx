@@ -9,7 +9,7 @@ import ThemeToggle from '../components/ThemeToggle'
 const MODAL_BLANK = { firstName: '', lastName: '', email: '', phone: '', password: '' }
 
 export default function StaffDashboard() {
-  const { t, staffToken, setStaffToken, showToast, lang, toggleLang, isSuperAdmin } = useStaff()
+  const { t, staffToken, setStaffToken, showToast, lang, toggleLang, isSuperAdmin, staffName } = useStaff()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('dashboard')
   const [stats, setStats] = useState(null)
@@ -30,7 +30,15 @@ export default function StaffDashboard() {
   const [inventory, setInventory] = useState([])
   const [inventoryLoading, setInventoryLoading] = useState(false)
   const [showAddInventory, setShowAddInventory] = useState(false)
-  const [newItem, setNewItem] = useState({ name: '', unit: 'units', quantity: 0, min_quantity: 10 })
+  const [newItem, setNewItem] = useState({ name: '', unit: 'liters', quantity: 0, min_quantity: 10 })
+  const [refillTarget, setRefillTarget] = useState(null)
+  const [refillQty, setRefillQty] = useState(10)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [showRefillRequest, setShowRefillRequest] = useState(false)
+  const [refillRequestItem, setRefillRequestItem] = useState('')
+  const [refillRequests, setRefillRequests] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('rasha_refill_requests') || '[]') } catch { return [] }
+  })
   const [cooldownInfo, setCooldownInfo] = useState(null) // { nextScanAt, canForce }
   const [loading, setLoading] = useState(true)
   const [uidInput, setUidInput] = useState('')
@@ -50,6 +58,7 @@ export default function StaffDashboard() {
   useEffect(() => {
     if (!staffToken) { navigate('/'); return }
     loadData()
+    if (isSuperAdmin) loadInventory()
   }, [staffToken])
 
   const hdrs = { Authorization: 'Bearer ' + staffToken, 'Content-Type': 'application/json' }
@@ -904,143 +913,143 @@ export default function StaffDashboard() {
 
             {/* Inventory — sidebar widget (dashboard only) */}
             <div className="glass rounded-2xl p-4">
-              <h4 className="text-xs font-bold text-secondary-fixed uppercase tracking-widest mb-3">{t('Inventory Quick View', 'نظرة سريعة على المخزون')}</h4>
-              <p className="text-on-surface-variant text-xs">{t('Go to Inventory tab for full management.', 'انتقل إلى تبويب المخزون للإدارة الكاملة.')}</p>
+              <h4 className="text-xs font-bold text-secondary-fixed uppercase tracking-widest mb-3 flex items-center justify-between">
+                {t('Inventory', 'المخزون')}
+                <span className="material-symbols-outlined text-sm text-secondary-fixed">inventory_2</span>
+              </h4>
+              {inventory.length === 0 ? (
+                <p className="text-on-surface-variant text-xs">{t('No items yet.', 'لا يوجد عناصر.')}</p>
+              ) : (
+                <div className="space-y-3">
+                  {inventory.slice(0, 5).map(item => {
+                    const pct = item.min_quantity > 0 ? Math.min(100, Math.round((item.quantity / (item.min_quantity * 3)) * 100)) : 50
+                    const low = item.quantity <= item.min_quantity
+                    return (
+                      <div key={item.id}>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-on-surface truncate max-w-[120px]">{item.name}</span>
+                          <span className={`font-bold ${low ? 'text-error' : 'text-secondary-fixed'}`}>{item.quantity} {item.unit}</span>
+                        </div>
+                        <div className="h-1.5 rounded-full overflow-hidden" style={{background:'var(--input-bg)'}}>
+                          <div className="h-full rounded-full" style={{width:`${pct}%`, background: low ? '#b3261e' : 'linear-gradient(90deg,#0056b3,#007a85)'}} />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              {/* Staff: Request Refill | Super Admin: go to tab */}
+              {isSuperAdmin ? (
+                <p className="text-on-surface-variant text-xs mt-3">{t('Manage in Inventory tab.', 'أدر من تبويب المخزون.')}</p>
+              ) : (
+                <div>
+                  <button onClick={() => setShowRefillRequest(true)}
+                    className="w-full mt-3 py-2 rounded-xl text-xs font-bold text-secondary-fixed flex items-center justify-center gap-1 transition-all"
+                    style={{border:'1px solid var(--color-outline-variant)', background:'var(--input-bg)'}}>
+                    <span className="material-symbols-outlined" style={{fontSize:'14px'}}>notification_add</span>
+                    {t('Request Refill', 'طلب تعبئة')}
+                  </button>
+                  {refillRequests.length > 0 && (
+                    <p className="text-xs text-on-surface-variant mt-2 text-center">
+                      {refillRequests.length} {t('pending request(s)', 'طلب معلق')}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
         </>)}
+
+
+        {/* ── Inventory Tab ─────────────────────────────────── */}
+        {activeTab === 'inventory' && isSuperAdmin && (
+          <div className="animate-fade-in space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-on-surface font-display">{t('Inventory', 'المخزون')}</h2>
+              <button onClick={() => setShowAddInventory(true)}
+                className="hydro-gradient px-4 py-2.5 rounded-xl text-white text-xs font-bold flex items-center gap-2 hover:opacity-90 cyan-glow">
+                <span className="material-symbols-outlined text-base">add</span>
+                {t('Add Item', 'إضافة عنصر')}
+              </button>
+            </div>
+
+          {/* Pending Refill Requests from Staff */}
+            {refillRequests.length > 0 && (
+              <div className="glass rounded-xl p-4 space-y-2">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-bold text-on-surface flex items-center gap-2">
+                    <span className="material-symbols-outlined text-error text-base">notification_important</span>
+                    {t('Refill Requests', 'طلبات التعبئة')}
+                    <span className="text-xs font-bold text-white px-2 py-0.5 rounded-full" style={{background:'#b3261e'}}>{refillRequests.length}</span>
+                  </h3>
+                  <button onClick={() => { setRefillRequests([]); localStorage.removeItem('rasha_refill_requests') }}
+                    className="text-xs text-on-surface-variant hover:text-error transition-colors">{t('Clear all', 'مسح الكل')}</button>
+                </div>
+                {refillRequests.map((req, i) => (
+                  <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{background:'var(--input-bg)', border:'1px solid var(--color-outline-variant)'}}>
+                    <div>
+                      <p className="text-sm font-semibold text-on-surface">{req.itemName}</p>
+                      <p className="text-xs text-on-surface-variant" dir="ltr">{req.requestedBy} — {req.time}</p>
+                    </div>
+                    <button onClick={() => setRefillRequests(r => { const n = r.filter((_,j) => j !== i); localStorage.setItem('rasha_refill_requests', JSON.stringify(n)); return n })}
+                      className="text-on-surface-variant hover:text-error transition-colors">
+                      <span className="material-symbols-outlined text-base">close</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {inventoryLoading ? (
+              <div className="flex justify-center py-10"><div className="loader" /></div>
+            ) : inventory.length === 0 ? (
+              <div className="glass rounded-xl p-6 text-center">
+                <span className="material-symbols-outlined text-on-surface-variant text-3xl mb-1 block">inventory_2</span>
+                <p className="text-on-surface-variant text-sm">{t('No inventory items yet.', 'لا يوجد عناصر في المخزون بعد.')}</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+                {inventory.map(item => {
+                  const pct = item.min_quantity > 0 ? Math.min(100, Math.round((item.quantity / (item.min_quantity * 3)) * 100)) : 50
+                  const low = item.quantity <= item.min_quantity
+                  return (
+                    <div key={item.id} className="glass rounded-xl p-4 space-y-3">
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="min-w-0">
+                          <p className="font-bold text-on-surface text-sm truncate">{item.name}</p>
+                          <p className="text-xs text-on-surface-variant">{item.unit}</p>
+                        </div>
+                        {low && <span className="text-error text-base">⚠</span>}
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-on-surface-variant">{t('Qty','كمية')}</span>
+                          <span className={`font-bold ${low ? 'text-error' : 'text-secondary-fixed'}`}>{item.quantity}</span>
+                        </div>
+                        <div className="h-1.5 rounded-full overflow-hidden" style={{background:'var(--input-bg)'}}>
+                          <div className="h-full rounded-full" style={{width:`${pct}%`, background: low ? '#b3261e' : 'linear-gradient(90deg,#0056b3,#007a85)'}} />
+                        </div>
+                      </div>
+                      <div className="flex gap-1.5">
+                        <button onClick={() => { setRefillTarget(item); setRefillQty(10) }}
+                          className="flex-1 py-1.5 rounded-lg text-xs font-bold hydro-gradient text-white hover:opacity-90 flex items-center justify-center gap-1">
+                          <span className="material-symbols-outlined" style={{fontSize:'14px'}}>add_circle</span>{t('Refill', 'تعبئة')}
+                        </button>
+                        <button onClick={() => setDeleteTarget(item)}
+                          className="glass px-2 py-1.5 rounded-lg text-error text-xs font-bold hover:bg-error/5 flex items-center">
+                          <span className="material-symbols-outlined" style={{fontSize:'14px'}}>delete</span>
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* ── Inventory Tab ─────────────────────────────────── */}
-      {activeTab === 'inventory' && isSuperAdmin && (
-        <div className="animate-fade-in space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-on-surface font-display">{t('Inventory Management', 'إدارة المخزون')}</h2>
-            <button onClick={() => setShowAddInventory(true)}
-              className="hydro-gradient px-4 py-2.5 rounded-xl text-white text-xs font-bold flex items-center gap-2 hover:opacity-90 cyan-glow">
-              <span className="material-symbols-outlined text-base">add</span>
-              {t('Add Item', 'إضافة عنصر')}
-            </button>
-          </div>
-
-          {inventoryLoading ? (
-            <div className="flex justify-center py-20"><div className="loader" /></div>
-          ) : inventory.length === 0 ? (
-            <div className="glass rounded-2xl p-8 text-center">
-              <span className="material-symbols-outlined text-on-surface-variant text-4xl mb-2 block">inventory_2</span>
-              <p className="text-on-surface-variant text-sm">{t('No inventory items yet.', 'لا يوجد عناصر في المخزون بعد.')}</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-              {inventory.map(item => {
-                const pct = item.min_quantity > 0 ? Math.min(100, Math.round((item.quantity / (item.min_quantity * 3)) * 100)) : 50
-                const low = item.quantity <= item.min_quantity
-                return (
-                  <div key={item.id} className="glass rounded-xl p-4 space-y-3">
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="min-w-0">
-                        <p className="font-bold text-on-surface text-sm truncate">{item.name}</p>
-                        <p className="text-xs text-on-surface-variant">{item.unit}</p>
-                      </div>
-                      {low && <span className="text-xs font-bold text-error shrink-0" style={{fontSize:'10px'}}>⚠️</span>}
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="text-on-surface-variant">{t('Qty','كمية')}</span>
-                        <span className={`font-bold ${low ? 'text-error' : 'text-secondary-fixed'}`}>{item.quantity}</span>
-                      </div>
-                      <div className="h-1.5 rounded-full overflow-hidden" style={{background:'var(--input-bg)'}}>
-                        <div className="h-full rounded-full" style={{width:`${pct}%`, background: low ? '#b3261e' : 'linear-gradient(90deg,#0056b3,#007a85)'}} />
-                      </div>
-                    </div>
-                    <div className="flex gap-1.5">
-                      <button onClick={async () => {
-                        const qty = parseInt(prompt(t('Add how many?', 'أضف كمية:'), '10') || '0')
-                        if (!qty || qty <= 0) return
-                        const res = await fetch(`${API}/api/admin/inventory/${item.id}`, { method: 'PATCH', headers: hdrs, body: JSON.stringify({ quantity: item.quantity + qty }) })
-                        if (res.ok) { showToast(t('Refilled!', 'تم التعبئة!')); loadInventory() }
-                      }} className="flex-1 py-1.5 rounded-lg text-xs font-bold hydro-gradient text-white hover:opacity-90 flex items-center justify-center gap-1">
-                        <span className="material-symbols-outlined" style={{fontSize:'14px'}}>add_circle</span>{t('Refill', 'تعبئة')}
-                      </button>
-                      <button onClick={async () => {
-                        if (!confirm(t(`Remove ${item.name}?`, `إزالة ${item.name}؟`))) return
-                        const res = await fetch(`${API}/api/admin/inventory/${item.id}`, { method: 'DELETE', headers: hdrs })
-                        if (res.ok) { showToast(t('Item removed', 'تم الحذف')); loadInventory() }
-                      }} className="glass px-2 py-1.5 rounded-lg text-error text-xs font-bold hover:bg-error/5 flex items-center">
-                        <span className="material-symbols-outlined" style={{fontSize:'14px'}}>delete</span>
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          {/* Add Item Modal */}
-          {showAddInventory && (
-            <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
-              <div className="w-full max-w-sm rounded-2xl p-6 animate-fade-in" style={{ background: 'var(--color-surface-container)', border: '1px solid var(--color-outline-variant)' }}>
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-bold text-on-surface font-display">{t('Add Inventory Item', 'إضافة عنصر')}</h3>
-                  <button onClick={() => { setShowAddInventory(false); setNewItem({name:'',unit:'liters',quantity:0,min_quantity:10}) }}>
-                    <span className="material-symbols-outlined text-on-surface-variant">close</span>
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 block">{t('Item Name', 'اسم العنصر')} *</label>
-                    <input className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none"
-                      style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}
-                      value={newItem.name} onChange={e => setNewItem(n => ({...n, name: e.target.value}))} />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 block">{t('Unit', 'الوحدة')}</label>
-                    <select className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none appearance-none"
-                      style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}
-                      value={newItem.unit} onChange={e => setNewItem(n => ({...n, unit: e.target.value}))}>
-                      <option value="liters">{t('Liters', 'لتر')}</option>
-                      <option value="ml">{t('ml', 'مل')}</option>
-                      <option value="kg">{t('Kg', 'كيلو')}</option>
-                      <option value="bottles">{t('Bottles', 'زجاجات')}</option>
-                      <option value="rolls">{t('Rolls', 'لفات')}</option>
-                    </select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[['quantity', t('Quantity', 'الكمية')], ['min_quantity', t('Min Required', 'الحد الأدنى')]].map(([field, label]) => (
-                      <div key={field}>
-                        <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 block">{label}</label>
-                        <input type="number" min="0" className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none"
-                          style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}
-                          value={newItem[field]} onChange={e => setNewItem(n => ({...n, [field]: parseInt(e.target.value)||0}))} />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex gap-3 pt-2">
-                    <button onClick={() => { setShowAddInventory(false); setNewItem({name:'',unit:'liters',quantity:0,min_quantity:10}) }}
-                      className="flex-1 py-3 rounded-xl text-xs font-bold text-on-surface-variant" style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}>
-                      {t('Cancel', 'إلغاء')}
-                    </button>
-                    <button onClick={async () => {
-                      if (!newItem.name.trim()) { showToast(t('Enter item name', 'أدخل اسم العنصر'), 'error'); return }
-                      try {
-                        const res = await fetch(`${API}/api/admin/inventory`, { method: 'POST', headers: hdrs, body: JSON.stringify(newItem) })
-                        const data = await res.json()
-                        if (res.ok) {
-                          showToast(t('Item added!', 'تم الإضافة!'))
-                          setShowAddInventory(false)
-                          setNewItem({name:'',unit:'liters',quantity:0,min_quantity:10})
-                          loadInventory()
-                        } else { showToast(data.error || t('Error', 'خطأ'), 'error') }
-                      } catch { showToast(t('Error', 'خطأ'), 'error') }
-                    }} className="flex-1 py-3 rounded-xl text-xs font-bold hydro-gradient text-white hover:opacity-90">{t('Add Item', 'إضافة')}</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Cancel Booking Popup */}
       {cancelTarget && (
@@ -1320,6 +1329,182 @@ export default function StaffDashboard() {
                   className="flex-1 py-3 rounded-xl font-bold text-sm hydro-gradient text-white flex items-center justify-center gap-2 hover:opacity-90">
                   {staffModalMode==='add'?t('Add Staff Member','إضافة موظف'):t('Save Changes','حفظ التغييرات')}
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Delete Inventory Item Popup */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-xs rounded-2xl p-6 animate-fade-in" style={{ background: 'var(--color-surface-container)', border: '1px solid var(--color-outline-variant)' }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{background:'rgba(179,38,30,0.1)'}}>
+                <span className="material-symbols-outlined text-error">delete</span>
+              </div>
+              <div>
+                <h3 className="font-bold text-on-surface">{t('Remove Item?', 'إزالة العنصر؟')}</h3>
+                <p className="text-xs text-on-surface-variant">{deleteTarget.name}</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteTarget(null)}
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-on-surface-variant" style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}>
+                {t('Cancel', 'إلغاء')}
+              </button>
+              <button onClick={async () => {
+                const res = await fetch(`${API}/api/admin/inventory/${deleteTarget.id}`, { method: 'DELETE', headers: hdrs })
+                if (res.ok) { showToast(t('Item removed', 'تم الحذف')); setDeleteTarget(null); loadInventory() }
+                else showToast(t('Error', 'خطأ'), 'error')
+              }} className="flex-1 py-3 rounded-xl text-sm font-bold text-white" style={{background:'#b3261e'}}>
+                {t('Remove', 'إزالة')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Staff: Request Refill Popup */}
+      {showRefillRequest && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-xs rounded-2xl p-6 animate-fade-in" style={{ background: 'var(--color-surface-container)', border: '1px solid var(--color-outline-variant)' }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{background:'rgba(0,86,179,0.1)'}}>
+                <span className="material-symbols-outlined text-secondary-fixed">notification_add</span>
+              </div>
+              <h3 className="font-bold text-on-surface">{t('Request Refill', 'طلب تعبئة')}</h3>
+            </div>
+            <div className="mb-4">
+              <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2 block">{t('Select Item', 'اختر العنصر')}</label>
+              {inventory.length === 0 ? (
+                <p className="text-on-surface-variant text-sm text-center py-3">{t('No items in inventory.', 'لا يوجد عناصر.')}</p>
+              ) : (
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {inventory.map(item => (
+                    <button key={item.id} onClick={() => setRefillRequestItem(item.name)}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${refillRequestItem === item.name ? 'hydro-gradient text-white' : 'text-on-surface'}`}
+                      style={refillRequestItem !== item.name ? {background:'var(--input-bg)', border:'1px solid var(--color-outline-variant)'} : {}}>
+                      <span>{item.name}</span>
+                      <span className="text-xs opacity-70">{item.quantity} {item.unit}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => { setShowRefillRequest(false); setRefillRequestItem('') }}
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-on-surface-variant" style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}>
+                {t('Cancel', 'إلغاء')}
+              </button>
+              <button onClick={() => {
+                if (!refillRequestItem) { showToast(t('Select an item', 'اختر عنصراً'), 'error'); return }
+                const req = { itemName: refillRequestItem, requestedBy: staffName || 'Staff', time: new Date().toLocaleString('en-GB') }
+                const updated = [...refillRequests, req]
+                setRefillRequests(updated)
+                localStorage.setItem('rasha_refill_requests', JSON.stringify(updated))
+                showToast(t('Refill request sent!', 'تم إرسال طلب التعبئة!'))
+                setShowRefillRequest(false)
+                setRefillRequestItem('')
+              }} disabled={!refillRequestItem}
+                className="flex-1 py-3 rounded-xl text-sm font-bold hydro-gradient text-white hover:opacity-90 disabled:opacity-40">
+                {t('Send Request', 'إرسال الطلب')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {refillTarget && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-xs rounded-2xl p-6 animate-fade-in" style={{ background: 'var(--color-surface-container)', border: '1px solid var(--color-outline-variant)' }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{background:'rgba(0,86,179,0.1)'}}>
+                <span className="material-symbols-outlined text-secondary-fixed">add_circle</span>
+              </div>
+              <div>
+                <h3 className="font-bold text-on-surface">{t('Refill', 'تعبئة')}</h3>
+                <p className="text-xs text-on-surface-variant">{refillTarget.name}</p>
+              </div>
+            </div>
+            <div className="mb-4">
+              <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2 block">{t('Add Quantity', 'أضف كمية')}</label>
+              <input type="number" min="1" className="w-full px-3 py-3 rounded-xl text-on-surface text-sm font-bold text-center focus:outline-none"
+                style={{background:'var(--input-bg)', border:'1px solid var(--color-outline-variant)', fontSize:'1.25rem'}}
+                value={refillQty} onChange={e => setRefillQty(parseInt(e.target.value)||0)} />
+              <p className="text-xs text-on-surface-variant mt-2 text-center">
+                {t('Current:', 'الحالي:')} {refillTarget.quantity} → {refillTarget.quantity + refillQty} {refillTarget.unit}
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setRefillTarget(null)}
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-on-surface-variant" style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}>
+                {t('Cancel', 'إلغاء')}
+              </button>
+              <button onClick={async () => {
+                if (!refillQty || refillQty <= 0) return
+                const res = await fetch(`${API}/api/admin/inventory/${refillTarget.id}`, { method: 'PATCH', headers: hdrs, body: JSON.stringify({ quantity: refillTarget.quantity + refillQty }) })
+                if (res.ok) { showToast(t('Refilled!', 'تم التعبئة!')); setRefillTarget(null); loadInventory() }
+                else showToast(t('Error', 'خطأ'), 'error')
+              }} className="flex-1 py-3 rounded-xl text-sm font-bold hydro-gradient text-white hover:opacity-90">
+                {t('Confirm Refill', 'تأكيد التعبئة')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Inventory Item Modal */}
+      {showAddInventory && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-sm rounded-2xl p-6 animate-fade-in" style={{ background: 'var(--color-surface-container)', border: '1px solid var(--color-outline-variant)' }}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-on-surface font-display">{t('Add Inventory Item', 'إضافة عنصر')}</h3>
+              <button onClick={() => { setShowAddInventory(false); setNewItem({name:'',unit:'liters',quantity:0,min_quantity:10}) }}>
+                <span className="material-symbols-outlined text-on-surface-variant">close</span>
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 block">{t('Item Name', 'اسم العنصر')} *</label>
+                <input className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none"
+                  style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}
+                  value={newItem.name} onChange={e => setNewItem(n => ({...n, name: e.target.value}))} />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 block">{t('Unit', 'الوحدة')}</label>
+                <select className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none appearance-none"
+                  style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}
+                  value={newItem.unit} onChange={e => setNewItem(n => ({...n, unit: e.target.value}))}>
+                  <option value="liters">{t('Liters', 'لتر')}</option>
+                  <option value="ml">{t('ml', 'مل')}</option>
+                  <option value="kg">{t('Kg', 'كيلو')}</option>
+                  <option value="bottles">{t('Bottles', 'زجاجات')}</option>
+                  <option value="rolls">{t('Rolls', 'لفات')}</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {[['quantity', t('Quantity', 'الكمية')], ['min_quantity', t('Min Required', 'الحد الأدنى')]].map(([field, label]) => (
+                  <div key={field}>
+                    <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 block">{label}</label>
+                    <input type="number" min="0" className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none"
+                      style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}
+                      value={newItem[field]} onChange={e => setNewItem(n => ({...n, [field]: parseInt(e.target.value)||0}))} />
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => { setShowAddInventory(false); setNewItem({name:'',unit:'liters',quantity:0,min_quantity:10}) }}
+                  className="flex-1 py-3 rounded-xl text-xs font-bold text-on-surface-variant" style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}>
+                  {t('Cancel', 'إلغاء')}
+                </button>
+                <button onClick={async () => {
+                  if (!newItem.name.trim()) { showToast(t('Enter item name', 'أدخل اسم العنصر'), 'error'); return }
+                  try {
+                    const res = await fetch(`${API}/api/admin/inventory`, { method: 'POST', headers: hdrs, body: JSON.stringify(newItem) })
+                    const data = await res.json()
+                    if (res.ok) { showToast(t('Item added!', 'تم الإضافة!')); setShowAddInventory(false); setNewItem({name:'',unit:'liters',quantity:0,min_quantity:10}); loadInventory() }
+                    else showToast(data.error || t('Error', 'خطأ'), 'error')
+                  } catch { showToast(t('Error', 'خطأ'), 'error') }
+                }} className="flex-1 py-3 rounded-xl text-xs font-bold hydro-gradient text-white hover:opacity-90">{t('Add Item', 'إضافة')}</button>
               </div>
             </div>
           </div>
