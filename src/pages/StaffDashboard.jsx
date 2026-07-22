@@ -932,44 +932,43 @@ export default function StaffDashboard() {
               <p className="text-on-surface-variant">{t('No inventory items yet.', 'لا يوجد عناصر في المخزون بعد.')}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
               {inventory.map(item => {
                 const pct = item.min_quantity > 0 ? Math.min(100, Math.round((item.quantity / (item.min_quantity * 3)) * 100)) : 50
                 const low = item.quantity <= item.min_quantity
                 return (
-                  <div key={item.id} className="glass rounded-2xl p-5 space-y-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-bold text-on-surface">{item.name}</p>
-                        <p className="text-xs text-on-surface-variant mt-0.5">{item.unit}</p>
+                  <div key={item.id} className="glass rounded-xl p-4 space-y-3">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="min-w-0">
+                        <p className="font-bold text-on-surface text-sm truncate">{item.name}</p>
+                        <p className="text-xs text-on-surface-variant">{item.unit}</p>
                       </div>
-                      {low && <span className="text-xs font-bold text-error px-2 py-0.5 rounded-full" style={{background:'rgba(179,38,30,0.1)',border:'1px solid rgba(179,38,30,0.2)'}}>{t('Low Stock', 'مخزون منخفض')}</span>}
+                      {low && <span className="text-xs font-bold text-error shrink-0" style={{fontSize:'10px'}}>⚠️</span>}
                     </div>
                     <div>
-                      <div className="flex justify-between text-sm mb-1.5">
-                        <span className="text-on-surface-variant">{t('Quantity', 'الكمية')}</span>
-                        <span className={`font-bold ${low ? 'text-error' : 'text-secondary-fixed'}`}>{item.quantity} {item.unit}</span>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-on-surface-variant">{t('Qty','كمية')}</span>
+                        <span className={`font-bold ${low ? 'text-error' : 'text-secondary-fixed'}`}>{item.quantity}</span>
                       </div>
-                      <div className="h-2 rounded-full overflow-hidden" style={{background:'var(--input-bg)'}}>
-                        <div className="h-full rounded-full transition-all" style={{width:`${pct}%`, background: low ? '#b3261e' : 'linear-gradient(90deg,#0056b3,#007a85)'}} />
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{background:'var(--input-bg)'}}>
+                        <div className="h-full rounded-full" style={{width:`${pct}%`, background: low ? '#b3261e' : 'linear-gradient(90deg,#0056b3,#007a85)'}} />
                       </div>
-                      <p className="text-xs text-on-surface-variant mt-1">{t('Min required:', 'الحد الأدنى:')} {item.min_quantity}</p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1.5">
                       <button onClick={async () => {
                         const qty = parseInt(prompt(t('Add how many?', 'أضف كمية:'), '10') || '0')
                         if (!qty || qty <= 0) return
                         const res = await fetch(`${API}/api/admin/inventory/${item.id}`, { method: 'PATCH', headers: hdrs, body: JSON.stringify({ quantity: item.quantity + qty }) })
                         if (res.ok) { showToast(t('Refilled!', 'تم التعبئة!')); loadInventory() }
-                      }} className="flex-1 py-2 rounded-xl text-xs font-bold hydro-gradient text-white hover:opacity-90 flex items-center justify-center gap-1">
-                        <span className="material-symbols-outlined text-sm">add_circle</span>{t('Refill', 'تعبئة')}
+                      }} className="flex-1 py-1.5 rounded-lg text-xs font-bold hydro-gradient text-white hover:opacity-90 flex items-center justify-center gap-1">
+                        <span className="material-symbols-outlined" style={{fontSize:'14px'}}>add_circle</span>{t('Refill', 'تعبئة')}
                       </button>
                       <button onClick={async () => {
                         if (!confirm(t(`Remove ${item.name}?`, `إزالة ${item.name}؟`))) return
                         const res = await fetch(`${API}/api/admin/inventory/${item.id}`, { method: 'DELETE', headers: hdrs })
                         if (res.ok) { showToast(t('Item removed', 'تم الحذف')); loadInventory() }
-                      }} className="glass px-3 py-2 rounded-xl text-error text-xs font-bold hover:bg-error/5 flex items-center gap-1">
-                        <span className="material-symbols-outlined text-sm">delete</span>
+                      }} className="glass px-2 py-1.5 rounded-lg text-error text-xs font-bold hover:bg-error/5 flex items-center">
+                        <span className="material-symbols-outlined" style={{fontSize:'14px'}}>delete</span>
                       </button>
                     </div>
                   </div>
@@ -984,17 +983,27 @@ export default function StaffDashboard() {
               <div className="w-full max-w-sm rounded-2xl p-6 animate-fade-in" style={{ background: 'var(--color-surface-container)', border: '1px solid var(--color-outline-variant)' }}>
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="font-bold text-on-surface font-display">{t('Add Inventory Item', 'إضافة عنصر')}</h3>
-                  <button onClick={() => setShowAddInventory(false)}><span className="material-symbols-outlined text-on-surface-variant">close</span></button>
+                  <button onClick={() => { setShowAddInventory(false); setNewItem({name:'',unit:'liters',quantity:0,min_quantity:10}) }}>
+                    <span className="material-symbols-outlined text-on-surface-variant">close</span>
+                  </button>
                 </div>
                 <div className="space-y-3">
-                  {[['name', t('Item Name', 'اسم العنصر'), 'text'], ['unit', t('Unit (e.g. liters, pcs)', 'الوحدة'), 'text']].map(([field, label, type]) => (
-                    <div key={field}>
-                      <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 block">{label}</label>
-                      <input type={type} className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none"
-                        style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}
-                        value={newItem[field]} onChange={e => setNewItem(n => ({...n, [field]: e.target.value}))} />
-                    </div>
-                  ))}
+                  <div>
+                    <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 block">{t('Item Name', 'اسم العنصر')} *</label>
+                    <input className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none"
+                      style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}
+                      value={newItem.name} onChange={e => setNewItem(n => ({...n, name: e.target.value}))} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 block">{t('Unit', 'الوحدة')}</label>
+                    <select className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none appearance-none"
+                      style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}
+                      value={newItem.unit} onChange={e => setNewItem(n => ({...n, unit: e.target.value}))}>
+                      {['liters','ml','kg','g','pcs','bottles','rolls','units'].map(u => (
+                        <option key={u} value={u}>{u}</option>
+                      ))}
+                    </select>
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
                     {[['quantity', t('Quantity', 'الكمية')], ['min_quantity', t('Min Required', 'الحد الأدنى')]].map(([field, label]) => (
                       <div key={field}>
@@ -1006,12 +1015,22 @@ export default function StaffDashboard() {
                     ))}
                   </div>
                   <div className="flex gap-3 pt-2">
-                    <button onClick={() => setShowAddInventory(false)} className="flex-1 py-3 rounded-xl text-xs font-bold text-on-surface-variant" style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}>{t('Cancel', 'إلغاء')}</button>
+                    <button onClick={() => { setShowAddInventory(false); setNewItem({name:'',unit:'liters',quantity:0,min_quantity:10}) }}
+                      className="flex-1 py-3 rounded-xl text-xs font-bold text-on-surface-variant" style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}>
+                      {t('Cancel', 'إلغاء')}
+                    </button>
                     <button onClick={async () => {
                       if (!newItem.name.trim()) { showToast(t('Enter item name', 'أدخل اسم العنصر'), 'error'); return }
-                      const res = await fetch(`${API}/api/admin/inventory`, { method: 'POST', headers: hdrs, body: JSON.stringify(newItem) })
-                      if (res.ok) { showToast(t('Item added!', 'تم الإضافة!')); setShowAddInventory(false); setNewItem({name:'',unit:'units',quantity:0,min_quantity:10}); loadInventory() }
-                      else showToast(t('Error', 'خطأ'), 'error')
+                      try {
+                        const res = await fetch(`${API}/api/admin/inventory`, { method: 'POST', headers: hdrs, body: JSON.stringify(newItem) })
+                        const data = await res.json()
+                        if (res.ok) {
+                          showToast(t('Item added!', 'تم الإضافة!'))
+                          setShowAddInventory(false)
+                          setNewItem({name:'',unit:'liters',quantity:0,min_quantity:10})
+                          loadInventory()
+                        } else { showToast(data.error || t('Error', 'خطأ'), 'error') }
+                      } catch { showToast(t('Error', 'خطأ'), 'error') }
                     }} className="flex-1 py-3 rounded-xl text-xs font-bold hydro-gradient text-white hover:opacity-90">{t('Add Item', 'إضافة')}</button>
                   </div>
                 </div>
@@ -1031,14 +1050,17 @@ export default function StaffDashboard() {
               </div>
               <h3 className="font-bold text-on-surface font-display">{t('Cancel Booking?', 'إلغاء الحجز؟')}</h3>
             </div>
-            <div className="rounded-xl p-4 mb-5" style={{background:'var(--input-bg)', border:'1px solid var(--color-outline-variant)'}}>
+            <div className="rounded-xl p-4 mb-5 space-y-1" style={{background:'var(--input-bg)', border:'1px solid var(--color-outline-variant)'}}>
               <p className="text-sm font-bold text-on-surface">{cancelTarget.customer_name || t('Customer', 'عميل')}</p>
-              <p className="text-xs text-on-surface-variant mt-1" dir="ltr">
-                #{cancelTarget.booking_uid?.replace('BK-','')} &nbsp;|&nbsp;
-                {new Date(cancelTarget.booking_date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})} &nbsp;|&nbsp;
-                {formatTime(cancelTarget.booking_time, lang)}
+              <p className="text-xs text-on-surface-variant" dir="ltr" style={{unicodeBidi:'embed'}}>
+                #{cancelTarget.booking_uid?.replace('BK-','')}
               </p>
-              <p className="text-xs text-on-surface-variant">{cancelTarget.service_type === 'full' ? t('Full Wash','غسيل كامل') : t('Exterior Only','خارجي فقط')}</p>
+              <p className="text-xs text-on-surface-variant" dir="ltr" style={{unicodeBidi:'embed'}}>
+                {new Date(cancelTarget.booking_date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})} — {formatTime(cancelTarget.booking_time, lang)}
+              </p>
+              <p className="text-xs text-on-surface-variant">
+                {cancelTarget.service_type === 'full' ? t('Full Wash','غسيل كامل') : t('Exterior Only','خارجي فقط')}
+              </p>
             </div>
             <div className="flex gap-3">
               <button onClick={() => setCancelTarget(null)}
