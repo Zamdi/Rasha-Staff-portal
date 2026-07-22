@@ -5,12 +5,6 @@ import jsQR from 'jsqr'
 import { formatTime } from '../utils/format'
 import ThemeToggle from '../components/ThemeToggle'
 
-const INVENTORY = [
-  { name_en: 'Car Shampoo', name_ar: 'شامبو السيارة', pct: 15, color: 'bg-error' },
-  { name_en: 'Microfiber Towels', name_ar: 'مناشف مايكروفايبر', pct: 60, color: 'bg-secondary-fixed' },
-  { name_en: 'Glass Cleaner', name_ar: 'منظف زجاج', pct: 80, color: 'bg-primary-fixed-dim' },
-  { name_en: 'Tire Shine', name_ar: 'لامع إطارات', pct: 35, color: 'bg-yellow-400' },
-]
 
 const MODAL_BLANK = { firstName: '', lastName: '', email: '', phone: '', password: '' }
 
@@ -20,6 +14,9 @@ export default function StaffDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [stats, setStats] = useState(null)
   const [bookings, setBookings] = useState([])
+  const [bookingFilter, setBookingFilter] = useState('all') // 'all'|'confirmed'|'cancelled'
+  const [cancelTarget, setCancelTarget] = useState(null) // booking object for popup
+  const [customerBookings, setCustomerBookings] = useState([]) // bookings for searched customer
   const [messages, setMessages] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [allCustomers, setAllCustomers] = useState([])
@@ -29,7 +26,11 @@ export default function StaffDashboard() {
   const [staffLoading, setStaffLoading] = useState(false)
   const [showStaffModal, setShowStaffModal] = useState(false)
   const [staffModalMode, setStaffModalMode] = useState('add')
-  const [staffModalData, setStaffModalData] = useState({ id: null, username: '', password: '', displayName: '', permissions: {} })
+  const [staffModalData, setStaffModalData] = useState({ id: null, username: '', password: '', displayName: '', role: 'staff', permissions: {} })
+  const [inventory, setInventory] = useState([])
+  const [inventoryLoading, setInventoryLoading] = useState(false)
+  const [showAddInventory, setShowAddInventory] = useState(false)
+  const [newItem, setNewItem] = useState({ name: '', unit: 'units', quantity: 0, min_quantity: 10 })
   const [cooldownInfo, setCooldownInfo] = useState(null) // { nextScanAt, canForce }
   const [loading, setLoading] = useState(true)
   const [uidInput, setUidInput] = useState('')
@@ -118,8 +119,9 @@ export default function StaffDashboard() {
     try {
       const res = await fetch(`${API}/api/admin/customers/${id}`, { headers: hdrs })
       const data = await res.json()
-      if (!res.ok) { showToast(data.error || t('Not found', 'غير موجود'), 'error'); setCustomer(null); return }
+      if (!res.ok) { showToast(data.error || t('Not found', 'غير موجود'), 'error'); setCustomer(null); setCustomerBookings([]); return }
       setCustomer(data.customer)
+      loadCustomerBookings(data.customer.customer_uid)
     } catch { showToast(t('Error', 'خطأ'), 'error') }
   }
 
@@ -235,12 +237,31 @@ export default function StaffDashboard() {
   }
 
   const cancelBooking = async (id) => {
-    if (!confirm(t('Cancel this booking?', 'إلغاء هذا الحجز؟'))) return
     try {
       await fetch(`${API}/api/admin/bookings/${id}/cancel`, { method: 'PATCH', headers: hdrs })
       showToast(t('Booking cancelled', 'تم إلغاء الحجز'))
+      setCancelTarget(null)
       loadData()
+      if (customerBookings.length > 0 && customer) loadCustomerBookings(customer.customer_uid)
     } catch {}
+  }
+
+  const loadCustomerBookings = async (uid) => {
+    try {
+      const res = await fetch(`${API}/api/admin/bookings?customer_uid=${uid}`, { headers: hdrs })
+      const data = await res.json()
+      setCustomerBookings(data.bookings || [])
+    } catch {}
+  }
+
+  const loadInventory = async () => {
+    setInventoryLoading(true)
+    try {
+      const res = await fetch(`${API}/api/admin/inventory`, { headers: hdrs })
+      const data = await res.json()
+      setInventory(data.items || [])
+    } catch {}
+    finally { setInventoryLoading(false) }
   }
 
   const handleSearch = (q) => {
@@ -391,6 +412,7 @@ export default function StaffDashboard() {
             ['customers', 'group', t('Customers', 'العملاء'), null, true],
             ['messages', 'mail', t('Messages', 'الرسائل'), unreadCount, true],
             ['staff', 'manage_accounts', t('Staff', 'الموظفون'), null, isSuperAdmin],
+            ['inventory', 'inventory_2', t('Inventory', 'المخزون'), null, isSuperAdmin],
           ].filter(([,,,,show]) => show).map(([tab, icon, label, badge]) => (
             <button key={tab}
               onClick={() => {
@@ -398,6 +420,7 @@ export default function StaffDashboard() {
                 if (tab === 'messages') { loadMessages(); setUnreadCount(0) }
                 if (tab === 'customers') loadAllCustomers('')
                 if (tab === 'staff') loadStaff()
+                if (tab === 'inventory') loadInventory()
               }}
               className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === tab ? 'hydro-gradient text-white' : 'text-on-surface-variant hover:text-on-surface'}`}>
               <span className="material-symbols-outlined text-base">{icon}</span>
@@ -442,7 +465,7 @@ export default function StaffDashboard() {
 
             {/* Customers table */}
             <div className="glass rounded-2xl overflow-hidden">
-              <div className="p-4 border-b border-outline-variant/20 flex justify-between items-center">
+              <div className="p-4  flex justify-between items-center">
                 <h3 className="font-bold text-on-surface">
                   {t('All Customers', 'جميع العملاء')}
                   {!customersLoading && <span className="ms-2 text-xs text-on-surface-variant font-normal">({allCustomers.length})</span>}
@@ -469,7 +492,7 @@ export default function StaffDashboard() {
                         ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-outline-variant/10">
+                    <tbody>
                       {allCustomers.map(c => (
                         <tr key={c.id} className="hover:bg-surface-variant/5 transition-colors group">
                           <td className="px-4 py-3">
@@ -549,7 +572,7 @@ export default function StaffDashboard() {
         {/* Messages Tab */}
         {activeTab === 'messages' && (
           <div className="glass rounded-2xl overflow-hidden animate-fade-in">
-            <div className="p-4 border-b border-outline-variant/20 flex justify-between items-center">
+            <div className="p-4  flex justify-between items-center">
               <h3 className="font-bold text-on-surface">{t('Customer Messages', 'رسائل العملاء')}</h3>
               <button onClick={loadMessages} className="text-secondary-fixed text-xs hover:underline flex items-center gap-1">
                 <span className="material-symbols-outlined text-base">refresh</span>{t('Refresh', 'تحديث')}
@@ -561,7 +584,7 @@ export default function StaffDashboard() {
                 <p className="text-on-surface-variant text-sm">{t('No messages yet', 'لا توجد رسائل بعد')}</p>
               </div>
             ) : (
-              <div className="divide-y divide-outline-variant/10">
+              <div className="">
                 {messages.map((msg) => (
                   <div key={msg.id}
                     className={`p-5 transition-colors ${msg.is_read ? 'hover:bg-surface-variant/5' : 'bg-secondary-fixed/5 hover:bg-secondary-fixed/8'}`}
@@ -619,7 +642,7 @@ export default function StaffDashboard() {
           <div className="lg:col-span-2 space-y-4">
             {/* QR Scanner / UID lookup */}
             <div className="glass rounded-2xl overflow-hidden">
-              <div className="p-4 border-b border-outline-variant/20 flex justify-between items-center">
+              <div className="p-4  flex justify-between items-center">
                 <h3 className="font-bold text-on-surface">{t('Scan Customer QR / Enter ID', 'مسح QR العميل / إدخال الرمز')}</h3>
                 <button onClick={toggleScanner} className={`hydro-gradient px-4 py-2 rounded-xl text-white text-xs font-bold flex items-center gap-2 hover:opacity-90 transition-opacity ${scannerOn ? 'bg-error' : ''}`}>
                   <span className="material-symbols-outlined text-sm">{scannerOn ? 'stop' : 'qr_code_scanner'}</span>
@@ -655,7 +678,7 @@ export default function StaffDashboard() {
               </div>
               {/* Customer result */}
               {customer && (
-                <div className="p-5 border-t border-outline-variant/20 animate-fade-in space-y-5">
+                <div className="p-5 staff-section-border animate-fade-in space-y-5">
                   {/* Customer info header */}
                   <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div className="flex items-center gap-4">
@@ -772,18 +795,46 @@ export default function StaffDashboard() {
                     <span className="material-symbols-outlined text-base">{customer.is_active ? 'block' : 'check_circle'}</span>
                     {customer.is_active ? t('Suspend Account', 'إيقاف الحساب') : t('Restore Account', 'تفعيل الحساب')}
                   </button>
+
+                  {/* Recent Bookings for this customer */}
+                  {customerBookings.length > 0 && (
+                    <div>
+                      <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2">{t('Recent Bookings', 'الحجوزات الأخيرة')}</p>
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {customerBookings.slice(0,5).map(b => (
+                          <div key={b.id} className="flex items-center justify-between px-3 py-2 rounded-xl text-xs" style={{background:'var(--input-bg)', border:'1px solid var(--color-outline-variant)'}}>
+                            <div dir="ltr">
+                              <p className="font-bold text-secondary-fixed">#RSH-{b.booking_uid?.replace('BK-','')}</p>
+                              <p className="text-on-surface-variant">{new Date(b.booking_date).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})} | {formatTime(b.booking_time, lang)}</p>
+                            </div>
+                            <span className="font-bold" style={{color: b.status==='confirmed'?'var(--color-secondary-fixed)':b.status==='completed'?'#22c55e':'var(--color-error)'}}>
+                              {b.status==='confirmed'?t('Confirmed','مؤكد'):b.status==='completed'?t('Completed','مكتمل'):t('Cancelled','ملغى')}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
             {/* Bookings table */}
             <div className="glass rounded-2xl overflow-hidden">
-              <div className="p-4 border-b border-outline-variant/20">
+              <div className="p-4 staff-section-header flex items-center justify-between gap-4 flex-wrap">
                 <h3 className="font-bold text-on-surface">{t('Recent Bookings', 'الحجوزات الأخيرة')}</h3>
+                <div className="flex gap-1">
+                  {[['all', t('All','الكل')], ['confirmed', t('Confirmed','مؤكد')], ['cancelled', t('Cancelled','ملغى')]].map(([f, label]) => (
+                    <button key={f} onClick={() => setBookingFilter(f)}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${bookingFilter === f ? 'hydro-gradient text-white' : 'text-on-surface-variant hover:text-on-surface'}`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm" dir="ltr">
-                  <thead className="bg-surface-container-high/30">
+                <table className="w-full text-sm staff-table" dir="ltr">
+                  <thead style={{background:'var(--color-surface-container-high)'}}>
                     <tr>
                       <th className="px-4 py-3 text-left text-xs text-on-surface-variant uppercase font-semibold whitespace-nowrap">{t('Ref','المرجع')}</th>
                       <th className="px-4 py-3 text-left text-xs text-on-surface-variant uppercase font-semibold whitespace-nowrap">{t('Customer','العميل')}</th>
@@ -793,12 +844,12 @@ export default function StaffDashboard() {
                       <th className="px-4 py-3"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-outline-variant/10">
+                  <tbody>
                     {loading ? (
                       <tr><td colSpan={6} className="px-4 py-8 text-center text-on-surface-variant"><div className="loader mx-auto" /></td></tr>
-                    ) : bookings.length === 0 ? (
+                    ) : bookings.filter(b => bookingFilter === 'all' || b.status === bookingFilter).length === 0 ? (
                       <tr><td colSpan={6} className="px-4 py-8 text-center text-on-surface-variant text-sm">{t('No bookings', 'لا توجد حجوزات')}</td></tr>
-                    ) : bookings.slice(0, 15).map(b => (
+                    ) : bookings.filter(b => bookingFilter === 'all' || b.status === bookingFilter).slice(0, 15).map(b => (
                       <tr key={b.id} className="hover:bg-surface-variant/10 transition-colors">
                         <td className="px-4 py-3 text-xs font-bold text-secondary-fixed whitespace-nowrap">#RSH-{b.booking_uid.replace('BK-','')}</td>
                         <td className="px-4 py-3">
@@ -811,14 +862,14 @@ export default function StaffDashboard() {
                           <p>{formatTime(b.booking_time, lang)}</p>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
-                            b.status==='confirmed'?'bg-secondary-container/20 text-secondary-fixed border border-secondary-container/30':
-                            b.status==='completed'?'bg-green-500/10 text-green-400 border border-green-500/20':
-                            'bg-error-container/20 text-error border border-error/20'
-                          }`} dir="rtl">{b.status === 'confirmed' ? t('Confirmed','مؤكد') : b.status === 'completed' ? t('Completed','مكتمل') : t('Cancelled','ملغى')}</span>
+                          <span className="px-2 py-1 rounded-full text-xs font-bold whitespace-nowrap" style={{
+                            background: b.status==='confirmed'?'rgba(0,122,133,0.1)':b.status==='completed'?'rgba(34,197,94,0.1)':'rgba(179,38,30,0.1)',
+                            border: `1px solid ${b.status==='confirmed'?'rgba(0,122,133,0.3)':b.status==='completed'?'rgba(34,197,94,0.2)':'rgba(179,38,30,0.2)'}`,
+                            color: b.status==='confirmed'?'var(--color-secondary-fixed)':b.status==='completed'?'#22c55e':'var(--color-error)'
+                          }} dir="rtl">{b.status === 'confirmed' ? t('Confirmed','مؤكد') : b.status === 'completed' ? t('Completed','مكتمل') : t('Cancelled','ملغى')}</span>
                         </td>
                         <td className="px-4 py-3">
-                          {b.status==='confirmed'&&<button onClick={()=>cancelBooking(b.id)} className="text-error text-xs hover:underline" dir="rtl">{t('Cancel','إلغاء')}</button>}
+                          {b.status==='confirmed'&&<button onClick={()=>setCancelTarget(b)} className="text-error text-xs hover:underline" dir="rtl">{t('Cancel','إلغاء')}</button>}
                         </td>
                       </tr>
                     ))}
@@ -832,7 +883,7 @@ export default function StaffDashboard() {
           <div className="space-y-6">
             {/* Customer search */}
             <div className="glass rounded-2xl overflow-hidden">
-              <div className="p-4 border-b border-outline-variant/20">
+              <div className="p-4 ">
                 <h3 className="font-bold text-on-surface text-sm">{t('Customer Search', 'بحث عن عميل')}</h3>
               </div>
               <div className="p-4 space-y-3">
@@ -851,35 +902,159 @@ export default function StaffDashboard() {
               </div>
             </div>
 
-            {/* Inventory */}
+            {/* Inventory — sidebar widget (dashboard only) */}
             <div className="glass rounded-2xl p-4">
-              <h4 className="text-xs font-bold text-secondary-fixed uppercase tracking-widest mb-4 flex justify-between items-center">
-                {t('Inventory', 'المخزون')}
-                <span className="material-symbols-outlined text-sm">inventory_2</span>
-              </h4>
-              <div className="space-y-4">
-                {INVENTORY.map(item => (
-                  <div key={item.name_en}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-on-surface">{t(item.name_en, item.name_ar)}</span>
-                      <span className={`font-bold ${item.pct < 20 ? 'text-error' : item.pct < 40 ? 'text-yellow-400' : 'text-secondary-fixed'}`}>{item.pct}%</span>
-                    </div>
-                    <div className="h-2 bg-surface-variant rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${item.color}`} style={{ width: `${item.pct}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <button className="w-full mt-4 py-2 border border-outline-variant/30 rounded-xl text-on-surface-variant text-xs font-bold hover:bg-surface-variant transition-colors">
-                {t('Request Restock', 'طلب تعبئة')}
-              </button>
+              <h4 className="text-xs font-bold text-secondary-fixed uppercase tracking-widest mb-3">{t('Inventory Quick View', 'نظرة سريعة على المخزون')}</h4>
+              <p className="text-on-surface-variant text-xs">{t('Go to Inventory tab for full management.', 'انتقل إلى تبويب المخزون للإدارة الكاملة.')}</p>
             </div>
           </div>
         </div>
         </>)}
       </div>
 
-      {/* Add/Edit Customer Modal */}
+      {/* ── Inventory Tab ─────────────────────────────────── */}
+      {activeTab === 'inventory' && isSuperAdmin && (
+        <div className="animate-fade-in space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-on-surface font-display">{t('Inventory Management', 'إدارة المخزون')}</h2>
+            <button onClick={() => setShowAddInventory(true)}
+              className="hydro-gradient px-4 py-2.5 rounded-xl text-white text-xs font-bold flex items-center gap-2 hover:opacity-90 cyan-glow">
+              <span className="material-symbols-outlined text-base">add</span>
+              {t('Add Item', 'إضافة عنصر')}
+            </button>
+          </div>
+
+          {inventoryLoading ? (
+            <div className="flex justify-center py-20"><div className="loader" /></div>
+          ) : inventory.length === 0 ? (
+            <div className="glass rounded-2xl p-12 text-center">
+              <span className="material-symbols-outlined text-on-surface-variant text-5xl mb-3 block">inventory_2</span>
+              <p className="text-on-surface-variant">{t('No inventory items yet.', 'لا يوجد عناصر في المخزون بعد.')}</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {inventory.map(item => {
+                const pct = item.min_quantity > 0 ? Math.min(100, Math.round((item.quantity / (item.min_quantity * 3)) * 100)) : 50
+                const low = item.quantity <= item.min_quantity
+                return (
+                  <div key={item.id} className="glass rounded-2xl p-5 space-y-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-bold text-on-surface">{item.name}</p>
+                        <p className="text-xs text-on-surface-variant mt-0.5">{item.unit}</p>
+                      </div>
+                      {low && <span className="text-xs font-bold text-error px-2 py-0.5 rounded-full" style={{background:'rgba(179,38,30,0.1)',border:'1px solid rgba(179,38,30,0.2)'}}>{t('Low Stock', 'مخزون منخفض')}</span>}
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm mb-1.5">
+                        <span className="text-on-surface-variant">{t('Quantity', 'الكمية')}</span>
+                        <span className={`font-bold ${low ? 'text-error' : 'text-secondary-fixed'}`}>{item.quantity} {item.unit}</span>
+                      </div>
+                      <div className="h-2 rounded-full overflow-hidden" style={{background:'var(--input-bg)'}}>
+                        <div className="h-full rounded-full transition-all" style={{width:`${pct}%`, background: low ? '#b3261e' : 'linear-gradient(90deg,#0056b3,#007a85)'}} />
+                      </div>
+                      <p className="text-xs text-on-surface-variant mt-1">{t('Min required:', 'الحد الأدنى:')} {item.min_quantity}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={async () => {
+                        const qty = parseInt(prompt(t('Add how many?', 'أضف كمية:'), '10') || '0')
+                        if (!qty || qty <= 0) return
+                        const res = await fetch(`${API}/api/admin/inventory/${item.id}`, { method: 'PATCH', headers: hdrs, body: JSON.stringify({ quantity: item.quantity + qty }) })
+                        if (res.ok) { showToast(t('Refilled!', 'تم التعبئة!')); loadInventory() }
+                      }} className="flex-1 py-2 rounded-xl text-xs font-bold hydro-gradient text-white hover:opacity-90 flex items-center justify-center gap-1">
+                        <span className="material-symbols-outlined text-sm">add_circle</span>{t('Refill', 'تعبئة')}
+                      </button>
+                      <button onClick={async () => {
+                        if (!confirm(t(`Remove ${item.name}?`, `إزالة ${item.name}؟`))) return
+                        const res = await fetch(`${API}/api/admin/inventory/${item.id}`, { method: 'DELETE', headers: hdrs })
+                        if (res.ok) { showToast(t('Item removed', 'تم الحذف')); loadInventory() }
+                      }} className="glass px-3 py-2 rounded-xl text-error text-xs font-bold hover:bg-error/5 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-sm">delete</span>
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Add Item Modal */}
+          {showAddInventory && (
+            <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
+              <div className="w-full max-w-sm rounded-2xl p-6 animate-fade-in" style={{ background: 'var(--color-surface-container)', border: '1px solid var(--color-outline-variant)' }}>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-on-surface font-display">{t('Add Inventory Item', 'إضافة عنصر')}</h3>
+                  <button onClick={() => setShowAddInventory(false)}><span className="material-symbols-outlined text-on-surface-variant">close</span></button>
+                </div>
+                <div className="space-y-3">
+                  {[['name', t('Item Name', 'اسم العنصر'), 'text'], ['unit', t('Unit (e.g. liters, pcs)', 'الوحدة'), 'text']].map(([field, label, type]) => (
+                    <div key={field}>
+                      <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 block">{label}</label>
+                      <input type={type} className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none"
+                        style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}
+                        value={newItem[field]} onChange={e => setNewItem(n => ({...n, [field]: e.target.value}))} />
+                    </div>
+                  ))}
+                  <div className="grid grid-cols-2 gap-3">
+                    {[['quantity', t('Quantity', 'الكمية')], ['min_quantity', t('Min Required', 'الحد الأدنى')]].map(([field, label]) => (
+                      <div key={field}>
+                        <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 block">{label}</label>
+                        <input type="number" min="0" className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none"
+                          style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}
+                          value={newItem[field]} onChange={e => setNewItem(n => ({...n, [field]: parseInt(e.target.value)||0}))} />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button onClick={() => setShowAddInventory(false)} className="flex-1 py-3 rounded-xl text-xs font-bold text-on-surface-variant" style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}>{t('Cancel', 'إلغاء')}</button>
+                    <button onClick={async () => {
+                      if (!newItem.name.trim()) { showToast(t('Enter item name', 'أدخل اسم العنصر'), 'error'); return }
+                      const res = await fetch(`${API}/api/admin/inventory`, { method: 'POST', headers: hdrs, body: JSON.stringify(newItem) })
+                      if (res.ok) { showToast(t('Item added!', 'تم الإضافة!')); setShowAddInventory(false); setNewItem({name:'',unit:'units',quantity:0,min_quantity:10}); loadInventory() }
+                      else showToast(t('Error', 'خطأ'), 'error')
+                    }} className="flex-1 py-3 rounded-xl text-xs font-bold hydro-gradient text-white hover:opacity-90">{t('Add Item', 'إضافة')}</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Cancel Booking Popup */}
+      {cancelTarget && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-sm rounded-2xl p-6 animate-fade-in" style={{ background: 'var(--color-surface-container)', border: '1px solid var(--color-outline-variant)' }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{background:'rgba(179,38,30,0.1)'}}>
+                <span className="material-symbols-outlined text-error">event_busy</span>
+              </div>
+              <h3 className="font-bold text-on-surface font-display">{t('Cancel Booking?', 'إلغاء الحجز؟')}</h3>
+            </div>
+            <div className="rounded-xl p-4 mb-5" style={{background:'var(--input-bg)', border:'1px solid var(--color-outline-variant)'}}>
+              <p className="text-sm font-bold text-on-surface">{cancelTarget.customer_name || t('Customer', 'عميل')}</p>
+              <p className="text-xs text-on-surface-variant mt-1" dir="ltr">
+                #{cancelTarget.booking_uid?.replace('BK-','')} &nbsp;|&nbsp;
+                {new Date(cancelTarget.booking_date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})} &nbsp;|&nbsp;
+                {formatTime(cancelTarget.booking_time, lang)}
+              </p>
+              <p className="text-xs text-on-surface-variant">{cancelTarget.service_type === 'full' ? t('Full Wash','غسيل كامل') : t('Exterior Only','خارجي فقط')}</p>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setCancelTarget(null)}
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-on-surface-variant" style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}>
+                {t('Skip', 'تخطي')}
+              </button>
+              <button onClick={() => cancelBooking(cancelTarget.id)}
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2"
+                style={{background:'#b3261e'}}>
+                <span className="material-symbols-outlined text-base">event_busy</span>
+                {t('Cancel Booking', 'إلغاء الحجز')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {showModal && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
           <div className="w-full max-w-md rounded-2xl p-6 animate-fade-in" style={{ background: 'var(--color-surface-container)', border: '1px solid rgba(116,245,255,0.15)' }}>
@@ -992,7 +1167,7 @@ export default function StaffDashboard() {
                       <button onClick={()=>{
                         setStaffModalMode('edit')
                         const perms = typeof s.permissions==='string'?JSON.parse(s.permissions||'{}'):(s.permissions||{})
-                        setStaffModalData({id:s.id,username:s.username,password:'',displayName:s.display_name||'',permissions:perms})
+                        setStaffModalData({id:s.id,username:s.username,password:'',displayName:s.display_name||'',role:s.role||'staff',permissions:perms})
                         setShowStaffModal(true)
                       }} className="glass px-4 py-2 rounded-xl text-secondary-fixed text-xs font-bold hover:bg-secondary-fixed/5 transition-colors flex items-center gap-1">
                         <span className="material-symbols-outlined text-base">edit</span>{t('Edit','تعديل')}
@@ -1055,7 +1230,24 @@ export default function StaffDashboard() {
                   value={staffModalData.password} onChange={e=>setStaffModalData(d=>({...d,password:e.target.value}))}
                   onFocus={e=>e.target.style.borderColor='#74f5ff'} onBlur={e=>e.target.style.borderColor='var(--input-border)'} />
               </div>
-              {/* Permissions */}
+              {/* Role selector */}
+              <div>
+                <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2 block">{t('Role', 'الدور')}</label>
+                <div className="flex gap-2">
+                  {[['staff', t('Staff', 'موظف')], ['super_admin', t('Super Admin', 'مدير')]].map(([role, label]) => (
+                    <button key={role} onClick={() => setStaffModalData(d => ({...d, role}))}
+                      className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${staffModalData.role === role ? 'hydro-gradient text-white' : 'text-on-surface-variant'}`}
+                      style={staffModalData.role !== role ? {background:'var(--input-bg)', border:'1px solid var(--input-border)'} : {}}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {staffModalData.role === 'super_admin' && (
+                  <p className="text-xs text-on-surface-variant mt-2 opacity-70">{t('Super admins have all permissions.', 'المديرون يملكون جميع الصلاحيات.')}</p>
+                )}
+              </div>
+              {/* Permissions — only for staff role */}
+              {staffModalData.role !== 'super_admin' && (
               <div>
                 <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-3 block">{t('Permissions', 'الصلاحيات')}</label>
                 <div className="grid grid-cols-1 gap-2">
@@ -1078,20 +1270,21 @@ export default function StaffDashboard() {
                   ))}
                 </div>
               </div>
+              )}
               <div className="flex gap-3 pt-2">
                 <button onClick={()=>setShowStaffModal(false)} className="flex-1 py-3 rounded-xl text-on-surface-variant font-bold text-sm" style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}>
                   {t('Cancel','إلغاء')}
                 </button>
                 <button
                   onClick={async () => {
-                    const { id, username, password, displayName, permissions } = staffModalData
+                    const { id, username, password, displayName, permissions, role } = staffModalData
                     if (staffModalMode==='add' && (!username||!password)) { showToast(t('Username and password required','اسم المستخدم وكلمة المرور مطلوبان'),'error'); return }
                     try {
                       let res
                       if (staffModalMode==='add') {
-                        res = await fetch(`${API}/api/admin/staff`,{method:'POST',headers:hdrs,body:JSON.stringify({username:username.trim().toLowerCase(),password,displayName,permissions})})
+                        res = await fetch(`${API}/api/admin/staff`,{method:'POST',headers:hdrs,body:JSON.stringify({username:username.trim().toLowerCase(),password,displayName,role,permissions:role==='super_admin'?{}:permissions})})
                       } else {
-                        res = await fetch(`${API}/api/admin/staff/${id}`,{method:'PATCH',headers:hdrs,body:JSON.stringify({displayName,password:password||undefined,permissions})})
+                        res = await fetch(`${API}/api/admin/staff/${id}`,{method:'PATCH',headers:hdrs,body:JSON.stringify({displayName,password:password||undefined,role,permissions:role==='super_admin'?{}:permissions})})
                       }
                       const data = await res.json()
                       if(!res.ok){showToast(data.error||t('Error','خطأ'),'error');return}

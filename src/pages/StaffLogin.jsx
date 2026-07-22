@@ -75,8 +75,9 @@ export default function StaffLogin() {
             </button>
           </div>
 
-          <p className="text-center text-xs text-on-surface-variant mt-6 opacity-50">{t('Authorized Access Only', 'دخول المصرح به فقط')}</p>
-           
+          <p className="text-center text-xs text-on-surface-variant mt-6 opacity-50">
+           Authorized Access Only
+          </p>
         </div>
       </div>
     </div>
