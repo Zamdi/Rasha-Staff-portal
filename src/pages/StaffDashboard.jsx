@@ -58,7 +58,7 @@ export default function StaffDashboard() {
   useEffect(() => {
     if (!staffToken) { navigate('/'); return }
     loadData()
-    if (isSuperAdmin) loadInventory()
+    loadInventory()
   }, [staffToken])
 
   const hdrs = { Authorization: 'Bearer ' + staffToken, 'Content-Type': 'application/json' }
@@ -703,7 +703,7 @@ export default function StaffDashboard() {
                         </span>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                       <button onClick={() => openEditModal(customer)}
                         className="glass px-4 py-2 rounded-xl text-secondary-fixed text-xs font-bold hover:bg-secondary-fixed/5 transition-colors flex items-center gap-1">
                         <span className="material-symbols-outlined text-base">edit</span>
@@ -713,6 +713,10 @@ export default function StaffDashboard() {
                         className="glass px-4 py-2 rounded-xl text-error text-xs font-bold hover:bg-error/5 transition-colors flex items-center gap-1">
                         <span className="material-symbols-outlined text-base">delete</span>
                         {t('Delete', 'حذف')}
+                      </button>
+                      <button onClick={() => { setCustomer(null); setUidInput(''); setCustomerBookings([]) }}
+                        className="glass p-2 rounded-xl text-on-surface-variant hover:text-error transition-colors">
+                        <span className="material-symbols-outlined text-base">close</span>
                       </button>
                     </div>
                   </div>
@@ -828,8 +832,8 @@ export default function StaffDashboard() {
               )}
             </div>
 
-            {/* Bookings table */}
-            <div className="glass rounded-2xl overflow-hidden">
+            {/* Bookings table — hide when customer panel is open */}
+            {!customer && <div className="glass rounded-2xl overflow-hidden">
               <div className="p-4 staff-section-header flex items-center justify-between gap-4 flex-wrap">
                 <h3 className="font-bold text-on-surface">{t('Recent Bookings', 'الحجوزات الأخيرة')}</h3>
                 <div className="flex gap-1">
@@ -885,7 +889,7 @@ export default function StaffDashboard() {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </div>}
           </div>
 
           {/* Right sidebar */}
@@ -1061,17 +1065,17 @@ export default function StaffDashboard() {
               </div>
               <h3 className="font-bold text-on-surface font-display">{t('Cancel Booking?', 'إلغاء الحجز؟')}</h3>
             </div>
-            <div className="rounded-xl p-4 mb-5 space-y-1" style={{background:'var(--input-bg)', border:'1px solid var(--color-outline-variant)'}}>
-              <p className="text-sm font-bold text-on-surface">{cancelTarget.customer_name || t('Customer', 'عميل')}</p>
-              <p className="text-xs text-on-surface-variant" dir="ltr" style={{unicodeBidi:'embed'}}>
-                #{cancelTarget.booking_uid?.replace('BK-','')}
-              </p>
-              <p className="text-xs text-on-surface-variant" dir="ltr" style={{unicodeBidi:'embed'}}>
-                {new Date(cancelTarget.booking_date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})} — {formatTime(cancelTarget.booking_time, lang)}
-              </p>
-              <p className="text-xs text-on-surface-variant">
-                {cancelTarget.service_type === 'full' ? t('Full Wash','غسيل كامل') : t('Exterior Only','خارجي فقط')}
-              </p>
+            <div className="rounded-xl p-4 mb-5" style={{background:'var(--input-bg)', border:'1px solid var(--color-outline-variant)'}}>
+              <p className="text-sm font-bold text-on-surface mb-2">{cancelTarget.customer_name || t('Customer', 'عميل')}</p>
+              <div dir="ltr" style={{unicodeBidi:'embed'}} className="space-y-1">
+                <p className="text-xs text-on-surface-variant">#{cancelTarget.booking_uid?.replace('BK-','')}</p>
+                <p className="text-xs text-on-surface-variant">
+                  {new Date(cancelTarget.booking_date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})} — {formatTime(cancelTarget.booking_time, lang)}
+                </p>
+                <p className="text-xs text-on-surface-variant">
+                  {cancelTarget.service_type === 'full' ? t('Full Wash','غسيل كامل') : t('Exterior Only','خارجي فقط')}
+                </p>
+              </div>
             </div>
             <div className="flex gap-3">
               <button onClick={() => setCancelTarget(null)}
