@@ -421,7 +421,7 @@ export default function StaffDashboard() {
             ['customers', 'group', t('Customers', 'العملاء'), null, true],
             ['messages', 'mail', t('Messages', 'الرسائل'), unreadCount, true],
             ['staff', 'manage_accounts', t('Staff', 'الموظفون'), null, isSuperAdmin],
-            ['inventory', 'inventory_2', t('Inventory', 'المخزون'), null, isSuperAdmin],
+            ['inventory', 'inventory_2', t('Inventory', 'المخزون'), isSuperAdmin ? refillRequests.filter(r=>!r.read).length : null, isSuperAdmin],
           ].filter(([,,,,show]) => show).map(([tab, icon, label, badge]) => (
             <button key={tab}
               onClick={() => {
@@ -429,7 +429,13 @@ export default function StaffDashboard() {
                 if (tab === 'messages') { loadMessages(); setUnreadCount(0) }
                 if (tab === 'customers') loadAllCustomers('')
                 if (tab === 'staff') loadStaff()
-                if (tab === 'inventory') loadInventory()
+                if (tab === 'inventory') {
+                  loadInventory()
+                  // Mark all refill requests as read
+                  const updated = refillRequests.map(r => ({...r, read: true}))
+                  setRefillRequests(updated)
+                  localStorage.setItem('rasha_refill_requests', JSON.stringify(updated))
+                }
               }}
               className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === tab ? 'hydro-gradient text-white' : 'text-on-surface-variant hover:text-on-surface'}`}>
               <span className="material-symbols-outlined text-base">{icon}</span>
@@ -934,8 +940,8 @@ export default function StaffDashboard() {
                           <span className="text-on-surface truncate max-w-[120px]">{item.name}</span>
                           <span className={`font-bold ${low ? 'text-error' : 'text-secondary-fixed'}`}>{item.quantity} {item.unit}</span>
                         </div>
-                        <div className="h-1.5 rounded-full overflow-hidden" style={{background:'var(--input-bg)'}}>
-                          <div className="h-full rounded-full" style={{width:`${pct}%`, background: low ? '#b3261e' : 'linear-gradient(90deg,#0056b3,#007a85)'}} />
+                        <div className="h-1.5 rounded-full overflow-hidden" style={{background:'rgba(0,0,0,0.15)'}}>
+                          <div className="h-full rounded-full" style={{width:`${pct}%`, background: pct < 25 ? '#b3261e' : pct < 60 ? '#f59e0b' : '#22c55e'}} />
                         </div>
                       </div>
                     )
@@ -981,25 +987,32 @@ export default function StaffDashboard() {
           {/* Pending Refill Requests from Staff */}
             {refillRequests.length > 0 && (
               <div className="glass rounded-xl p-4 space-y-2">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-bold text-on-surface flex items-center gap-2">
-                    <span className="material-symbols-outlined text-error text-base">notification_important</span>
-                    {t('Refill Requests', 'طلبات التعبئة')}
-                    <span className="text-xs font-bold text-white px-2 py-0.5 rounded-full" style={{background:'#b3261e'}}>{refillRequests.length}</span>
-                  </h3>
-                  <button onClick={() => { setRefillRequests([]); localStorage.removeItem('rasha_refill_requests') }}
-                    className="text-xs text-on-surface-variant hover:text-error transition-colors">{t('Clear all', 'مسح الكل')}</button>
-                </div>
+                <h3 className="text-sm font-bold text-on-surface flex items-center gap-2 mb-3">
+                  <span className="material-symbols-outlined text-error text-base">notification_important</span>
+                  {t('Refill Requests', 'طلبات التعبئة')}
+                  {refillRequests.filter(r=>!r.read).length > 0 && (
+                    <span className="text-xs font-bold text-white px-2 py-0.5 rounded-full" style={{background:'#b3261e'}}>
+                      {refillRequests.filter(r=>!r.read).length}
+                    </span>
+                  )}
+                </h3>
                 {refillRequests.map((req, i) => (
-                  <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{background:'var(--input-bg)', border:'1px solid var(--color-outline-variant)'}}>
+                  <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg transition-all" 
+                    style={{background: req.read ? 'var(--input-bg)' : 'rgba(179,38,30,0.08)', border:`1px solid ${req.read ? 'var(--color-outline-variant)' : 'rgba(179,38,30,0.25)'}`}}>
                     <div>
                       <p className="text-sm font-semibold text-on-surface">{req.itemName}</p>
                       <p className="text-xs text-on-surface-variant" dir="ltr">{req.requestedBy} — {req.time}</p>
                     </div>
-                    <button onClick={() => setRefillRequests(r => { const n = r.filter((_,j) => j !== i); localStorage.setItem('rasha_refill_requests', JSON.stringify(n)); return n })}
-                      className="text-on-surface-variant hover:text-error transition-colors">
-                      <span className="material-symbols-outlined text-base">close</span>
-                    </button>
+                    {!req.read && (
+                      <button onClick={() => {
+                        const updated = refillRequests.map((r,j) => j===i ? {...r, read:true} : r)
+                        setRefillRequests(updated)
+                        localStorage.setItem('rasha_refill_requests', JSON.stringify(updated))
+                      }} className="text-xs text-on-surface-variant hover:text-secondary-fixed transition-colors ml-2 shrink-0"
+                        title={t('Mark as read','تحديد كمقروء')}>
+                        <span className="material-symbols-outlined text-base">check_circle</span>
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1031,8 +1044,8 @@ export default function StaffDashboard() {
                           <span className="text-on-surface-variant">{t('Qty','كمية')}</span>
                           <span className={`font-bold ${low ? 'text-error' : 'text-secondary-fixed'}`}>{item.quantity}</span>
                         </div>
-                        <div className="h-1.5 rounded-full overflow-hidden" style={{background:'var(--input-bg)'}}>
-                          <div className="h-full rounded-full" style={{width:`${pct}%`, background: low ? '#b3261e' : 'linear-gradient(90deg,#0056b3,#007a85)'}} />
+                        <div className="h-1.5 rounded-full overflow-hidden" style={{background:'rgba(0,0,0,0.15)'}}>
+                          <div className="h-full rounded-full" style={{width:`${pct}%`, background: pct < 25 ? '#b3261e' : pct < 60 ? '#f59e0b' : '#22c55e'}} />
                         </div>
                       </div>
                       <div className="flex gap-1.5">
