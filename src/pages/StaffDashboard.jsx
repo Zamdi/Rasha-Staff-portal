@@ -927,9 +927,9 @@ export default function StaffDashboard() {
           {inventoryLoading ? (
             <div className="flex justify-center py-20"><div className="loader" /></div>
           ) : inventory.length === 0 ? (
-            <div className="glass rounded-2xl p-12 text-center">
-              <span className="material-symbols-outlined text-on-surface-variant text-5xl mb-3 block">inventory_2</span>
-              <p className="text-on-surface-variant">{t('No inventory items yet.', 'لا يوجد عناصر في المخزون بعد.')}</p>
+            <div className="glass rounded-2xl p-8 text-center">
+              <span className="material-symbols-outlined text-on-surface-variant text-4xl mb-2 block">inventory_2</span>
+              <p className="text-on-surface-variant text-sm">{t('No inventory items yet.', 'لا يوجد عناصر في المخزون بعد.')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
@@ -999,9 +999,11 @@ export default function StaffDashboard() {
                     <select className="w-full px-3 py-2.5 rounded-lg text-on-surface text-sm focus:outline-none appearance-none"
                       style={{background:'var(--input-bg)',border:'1px solid var(--input-border)'}}
                       value={newItem.unit} onChange={e => setNewItem(n => ({...n, unit: e.target.value}))}>
-                      {['liters','ml','kg','g','pcs','bottles','rolls','units'].map(u => (
-                        <option key={u} value={u}>{u}</option>
-                      ))}
+                      <option value="liters">{t('Liters', 'لتر')}</option>
+                      <option value="ml">{t('ml', 'مل')}</option>
+                      <option value="kg">{t('Kg', 'كيلو')}</option>
+                      <option value="bottles">{t('Bottles', 'زجاجات')}</option>
+                      <option value="rolls">{t('Rolls', 'لفات')}</option>
                     </select>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
