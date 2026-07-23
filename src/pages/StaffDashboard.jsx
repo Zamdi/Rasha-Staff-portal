@@ -31,6 +31,7 @@ export default function StaffDashboard() {
   const [inventoryLoading, setInventoryLoading] = useState(false)
   const [showAddInventory, setShowAddInventory] = useState(false)
   const [newItem, setNewItem] = useState({ name: '', unit: 'liters', quantity: 0, min_quantity: 10 })
+  const [inventorySubTab, setInventorySubTab] = useState('items') // 'items' | 'requests'
   const [refillTarget, setRefillTarget] = useState(null)
   const [refillQty, setRefillQty] = useState(10)
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -695,30 +696,28 @@ export default function StaffDashboard() {
               {customer && (
                 <div className="p-5 staff-section-border animate-fade-in space-y-5">
                   {/* Customer info header */}
-                  <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-2xl hydro-gradient flex items-center justify-center text-white text-xl font-bold shrink-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-12 rounded-2xl hydro-gradient flex items-center justify-center text-white text-lg font-bold shrink-0">
                         {customer.first_name?.[0]}{customer.last_name?.[0]}
                       </div>
-                      <div>
-                        <h4 className="font-bold text-on-surface text-lg font-display">{customer.first_name} {customer.last_name}</h4>
-                        <p className="text-sm text-on-surface-variant" dir="ltr" style={{unicodeBidi:'embed'}}>{customer.phone}</p>
-                        <p className="text-xs text-secondary-fixed font-bold mt-0.5" dir="ltr" style={{unicodeBidi:'embed'}}>{customer.customer_uid}</p>
-                        <span className={`mt-1 inline-block text-xs px-2 py-0.5 rounded-full font-bold ${customer.is_active ? 'bg-green-500/10 text-green-400' : 'bg-error/10 text-error'}`}>
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-on-surface font-display truncate">{customer.first_name} {customer.last_name}</h4>
+                        <p className="text-xs text-on-surface-variant" dir="ltr" style={{unicodeBidi:'embed'}}>{customer.phone}</p>
+                        <p className="text-xs text-secondary-fixed font-bold" dir="ltr" style={{unicodeBidi:'embed'}}>{customer.customer_uid}</p>
+                        <span className={`mt-0.5 inline-block text-xs px-2 py-0.5 rounded-full font-bold ${customer.is_active ? 'bg-green-500/10 text-green-400' : 'bg-error/10 text-error'}`}>
                           {customer.is_active ? t('Active', 'نشط') : t('Suspended', 'موقوف')}
                         </span>
                       </div>
                     </div>
-                    <div className="flex gap-2 items-center">
+                    <div className="flex gap-1 items-center shrink-0">
                       <button onClick={() => openEditModal(customer)}
-                        className="glass px-4 py-2 rounded-xl text-secondary-fixed text-xs font-bold hover:bg-secondary-fixed/5 transition-colors flex items-center gap-1">
+                        className="glass p-2 rounded-xl text-secondary-fixed hover:bg-secondary-fixed/5 transition-colors">
                         <span className="material-symbols-outlined text-base">edit</span>
-                        {t('Edit', 'تعديل')}
                       </button>
                       <button onClick={deleteCustomer}
-                        className="glass px-4 py-2 rounded-xl text-error text-xs font-bold hover:bg-error/5 transition-colors flex items-center gap-1">
+                        className="glass p-2 rounded-xl text-error hover:bg-error/5 transition-colors">
                         <span className="material-symbols-outlined text-base">delete</span>
-                        {t('Delete', 'حذف')}
                       </button>
                       <button onClick={() => { setCustomer(null); setUidInput(''); setCustomerBookings([]) }}
                         className="glass p-2 rounded-xl text-on-surface-variant hover:text-error transition-colors">
@@ -975,6 +974,7 @@ export default function StaffDashboard() {
         {/* ── Inventory Tab ─────────────────────────────────── */}
         {activeTab === 'inventory' && isSuperAdmin && (
           <div className="animate-fade-in space-y-4">
+            {/* Header */}
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-on-surface font-display">{t('Inventory', 'المخزون')}</h2>
               <button onClick={() => setShowAddInventory(true)}
@@ -984,83 +984,124 @@ export default function StaffDashboard() {
               </button>
             </div>
 
-          {/* Pending Refill Requests from Staff */}
-            {refillRequests.length > 0 && (
-              <div className="glass rounded-xl p-4 space-y-2">
-                <h3 className="text-sm font-bold text-on-surface flex items-center gap-2 mb-3">
-                  <span className="material-symbols-outlined text-error text-base">notification_important</span>
-                  {t('Refill Requests', 'طلبات التعبئة')}
-                  {refillRequests.filter(r=>!r.read).length > 0 && (
-                    <span className="text-xs font-bold text-white px-2 py-0.5 rounded-full" style={{background:'#b3261e'}}>
+            {/* Sub-tabs */}
+            <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: 'var(--color-surface-container)', border: '1px solid var(--color-outline-variant)' }}>
+              {[
+                ['items', t('Items', 'العناصر')],
+                ['requests', t('Refill Requests', 'طلبات التعبئة')],
+              ].map(([sub, label]) => (
+                <button key={sub} onClick={() => {
+                  setInventorySubTab(sub)
+                  if (sub === 'requests') {
+                    const updated = refillRequests.map(r => ({...r, read: true}))
+                    setRefillRequests(updated)
+                    localStorage.setItem('rasha_refill_requests', JSON.stringify(updated))
+                  }
+                }}
+                  className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${inventorySubTab === sub ? 'hydro-gradient text-white' : 'text-on-surface-variant hover:text-on-surface'}`}>
+                  {label}
+                  {sub === 'requests' && refillRequests.filter(r=>!r.read).length > 0 && (
+                    <span className="text-xs font-bold text-white px-1.5 py-0.5 rounded-full" style={{background:'#b3261e', fontSize:'10px'}}>
                       {refillRequests.filter(r=>!r.read).length}
                     </span>
                   )}
-                </h3>
-                {refillRequests.map((req, i) => (
-                  <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg transition-all" 
-                    style={{background: req.read ? 'var(--input-bg)' : 'rgba(179,38,30,0.08)', border:`1px solid ${req.read ? 'var(--color-outline-variant)' : 'rgba(179,38,30,0.25)'}`}}>
-                    <div>
-                      <p className="text-sm font-semibold text-on-surface">{req.itemName}</p>
-                      <p className="text-xs text-on-surface-variant" dir="ltr">{req.requestedBy} — {req.time}</p>
-                    </div>
-                    {!req.read && (
-                      <button onClick={() => {
-                        const updated = refillRequests.map((r,j) => j===i ? {...r, read:true} : r)
-                        setRefillRequests(updated)
-                        localStorage.setItem('rasha_refill_requests', JSON.stringify(updated))
-                      }} className="text-xs text-on-surface-variant hover:text-secondary-fixed transition-colors ml-2 shrink-0"
-                        title={t('Mark as read','تحديد كمقروء')}>
-                        <span className="material-symbols-outlined text-base">check_circle</span>
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Items sub-tab */}
+            {inventorySubTab === 'items' && (
+              inventoryLoading ? (
+                <div className="flex justify-center py-10"><div className="loader" /></div>
+              ) : inventory.length === 0 ? (
+                <div className="glass rounded-xl p-6 text-center">
+                  <span className="material-symbols-outlined text-on-surface-variant text-3xl mb-1 block">inventory_2</span>
+                  <p className="text-on-surface-variant text-sm">{t('No inventory items yet.', 'لا يوجد عناصر في المخزون بعد.')}</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+                  {inventory.map(item => {
+                    const pct = item.min_quantity > 0 ? Math.min(100, Math.round((item.quantity / (item.min_quantity * 3)) * 100)) : 50
+                    const low = item.quantity <= item.min_quantity
+                    return (
+                      <div key={item.id} className="glass rounded-xl p-4 space-y-3">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="min-w-0">
+                            <p className="font-bold text-on-surface text-sm truncate">{item.name}</p>
+                            <p className="text-xs text-on-surface-variant">{item.unit}</p>
+                          </div>
+                          {low && <span className="text-error text-base">⚠</span>}
+                        </div>
+                        <div>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="text-on-surface-variant">{t('Qty','كمية')}</span>
+                            <span className={`font-bold ${low ? 'text-error' : 'text-secondary-fixed'}`}>{item.quantity}</span>
+                          </div>
+                          <div className="h-1.5 rounded-full overflow-hidden" style={{background:'rgba(0,0,0,0.15)'}}>
+                            <div className="h-full rounded-full" style={{width:`${pct}%`, background: pct < 25 ? '#b3261e' : pct < 60 ? '#f59e0b' : '#22c55e'}} />
+                          </div>
+                        </div>
+                        <div className="flex gap-1.5">
+                          <button onClick={() => { setRefillTarget(item); setRefillQty(10) }}
+                            className="flex-1 py-1.5 rounded-lg text-xs font-bold hydro-gradient text-white hover:opacity-90 flex items-center justify-center gap-1">
+                            <span className="material-symbols-outlined" style={{fontSize:'14px'}}>add_circle</span>{t('Refill', 'تعبئة')}
+                          </button>
+                          <button onClick={() => setDeleteTarget(item)}
+                            className="glass px-2 py-1.5 rounded-lg text-error text-xs font-bold hover:bg-error/5 flex items-center">
+                            <span className="material-symbols-outlined" style={{fontSize:'14px'}}>delete</span>
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
             )}
 
-            {inventoryLoading ? (
-              <div className="flex justify-center py-10"><div className="loader" /></div>
-            ) : inventory.length === 0 ? (
-              <div className="glass rounded-xl p-6 text-center">
-                <span className="material-symbols-outlined text-on-surface-variant text-3xl mb-1 block">inventory_2</span>
-                <p className="text-on-surface-variant text-sm">{t('No inventory items yet.', 'لا يوجد عناصر في المخزون بعد.')}</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-                {inventory.map(item => {
-                  const pct = item.min_quantity > 0 ? Math.min(100, Math.round((item.quantity / (item.min_quantity * 3)) * 100)) : 50
-                  const low = item.quantity <= item.min_quantity
-                  return (
-                    <div key={item.id} className="glass rounded-xl p-4 space-y-3">
-                      <div className="flex justify-between items-start gap-2">
-                        <div className="min-w-0">
-                          <p className="font-bold text-on-surface text-sm truncate">{item.name}</p>
-                          <p className="text-xs text-on-surface-variant">{item.unit}</p>
-                        </div>
-                        {low && <span className="text-error text-base">⚠</span>}
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="text-on-surface-variant">{t('Qty','كمية')}</span>
-                          <span className={`font-bold ${low ? 'text-error' : 'text-secondary-fixed'}`}>{item.quantity}</span>
-                        </div>
-                        <div className="h-1.5 rounded-full overflow-hidden" style={{background:'rgba(0,0,0,0.15)'}}>
-                          <div className="h-full rounded-full" style={{width:`${pct}%`, background: pct < 25 ? '#b3261e' : pct < 60 ? '#f59e0b' : '#22c55e'}} />
-                        </div>
-                      </div>
-                      <div className="flex gap-1.5">
-                        <button onClick={() => { setRefillTarget(item); setRefillQty(10) }}
-                          className="flex-1 py-1.5 rounded-lg text-xs font-bold hydro-gradient text-white hover:opacity-90 flex items-center justify-center gap-1">
-                          <span className="material-symbols-outlined" style={{fontSize:'14px'}}>add_circle</span>{t('Refill', 'تعبئة')}
-                        </button>
-                        <button onClick={() => setDeleteTarget(item)}
-                          className="glass px-2 py-1.5 rounded-lg text-error text-xs font-bold hover:bg-error/5 flex items-center">
-                          <span className="material-symbols-outlined" style={{fontSize:'14px'}}>delete</span>
-                        </button>
-                      </div>
+            {/* Refill Requests sub-tab */}
+            {inventorySubTab === 'requests' && (
+              <div className="space-y-3">
+                {refillRequests.length === 0 ? (
+                  <div className="glass rounded-xl p-6 text-center">
+                    <span className="material-symbols-outlined text-on-surface-variant text-3xl mb-1 block">notifications_none</span>
+                    <p className="text-on-surface-variant text-sm">{t('No refill requests yet.', 'لا يوجد طلبات تعبئة بعد.')}</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex justify-end">
+                      <button onClick={() => {
+                        const updated = refillRequests.map(r => ({...r, read: true}))
+                        setRefillRequests(updated)
+                        localStorage.setItem('rasha_refill_requests', JSON.stringify(updated))
+                      }} className="text-xs text-on-surface-variant hover:text-secondary-fixed transition-colors underline">
+                        {t('Clear Notifications', 'مسح الإشعارات')}
+                      </button>
                     </div>
-                  )
-                })}
+                    {refillRequests.map((req, i) => (
+                      <div key={i} className="flex items-center justify-between px-4 py-3 rounded-xl transition-all"
+                        style={{background: req.read ? 'var(--input-bg)' : 'rgba(179,38,30,0.07)', border:`1px solid ${req.read ? 'var(--color-outline-variant)' : 'rgba(179,38,30,0.3)'}`}}>
+                        <div className="flex items-center gap-3">
+                          {!req.read && <div className="w-2 h-2 rounded-full shrink-0" style={{background:'#b3261e'}} />}
+                          {req.read && <div className="w-2 h-2 rounded-full shrink-0 opacity-0" />}
+                          <div>
+                            <p className="text-sm font-semibold text-on-surface">{req.itemName}</p>
+                            <p className="text-xs text-on-surface-variant" dir="ltr">{req.requestedBy} — {req.time}</p>
+                          </div>
+                        </div>
+                        {!req.read && (
+                          <button onClick={() => {
+                            const updated = refillRequests.map((r,j) => j===i ? {...r, read:true} : r)
+                            setRefillRequests(updated)
+                            localStorage.setItem('rasha_refill_requests', JSON.stringify(updated))
+                          }} className="text-xs text-on-surface-variant hover:text-secondary-fixed transition-colors shrink-0"
+                            title={t('Mark as read','تحديد كمقروء')}>
+                            <span className="material-symbols-outlined text-base">check_circle</span>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -1079,8 +1120,8 @@ export default function StaffDashboard() {
               <h3 className="font-bold text-on-surface font-display">{t('Cancel Booking?', 'إلغاء الحجز؟')}</h3>
             </div>
             <div className="rounded-xl p-4 mb-5" style={{background:'var(--input-bg)', border:'1px solid var(--color-outline-variant)'}}>
-              <p className="text-sm font-bold text-on-surface mb-2">{cancelTarget.customer_name || t('Customer', 'عميل')}</p>
               <div dir="ltr" style={{unicodeBidi:'embed'}} className="space-y-1">
+                <p className="text-sm font-bold text-on-surface">{cancelTarget.customer_name || t('Customer', 'عميل')}</p>
                 <p className="text-xs text-on-surface-variant">#{cancelTarget.booking_uid?.replace('BK-','')}</p>
                 <p className="text-xs text-on-surface-variant">
                   {new Date(cancelTarget.booking_date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})} — {formatTime(cancelTarget.booking_time, lang)}
@@ -1182,7 +1223,10 @@ export default function StaffDashboard() {
           </div>
           {staffLoading ? <div className="flex justify-center py-12"><div className="loader"/></div> : (
             <div className="space-y-3">
-              {staffList.map(s => (
+              {staffList.map(s => {
+                const canEdit = !s.is_original || isSuperAdmin
+                const canDelete = !s.is_original && (s.role === 'staff' || isSuperAdmin)
+                return (
                 <div key={s.id} className="glass p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shrink-0"
@@ -1195,13 +1239,14 @@ export default function StaffDashboard() {
                         <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${s.role==='super_admin'?'bg-yellow-500/15 text-yellow-400 border border-yellow-500/20':'bg-secondary-fixed/10 text-secondary-fixed border border-secondary-fixed/20'}`}>
                           {s.role==='super_admin'?t('Super Admin','مشرف رئيسي'):t('Staff','موظف')}
                         </span>
+                        {s.is_original && <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{background:'rgba(245,158,11,0.1)',color:'#f59e0b',border:'1px solid rgba(245,158,11,0.2)'}}>{t('Original','الأصلي')}</span>}
                         {!s.is_active && <span className="text-xs px-2 py-0.5 rounded-full bg-error/10 text-error border border-error/20 font-bold">{t('Inactive','معطّل')}</span>}
                       </div>
                       <p className="text-xs text-on-surface-variant mt-0.5">@{s.username}</p>
                       {s.role==='staff' && (
                         <div className="flex flex-wrap gap-1 mt-2">
                           {Object.entries(typeof s.permissions==='string'?JSON.parse(s.permissions||'{}'):(s.permissions||{})).filter(([,v])=>v).map(([k])=>(
-                            <span key={k} className="text-xs px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant border border-outline-variant/30 capitalize">
+                            <span key={k} className="text-xs px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant capitalize" style={{border:'1px solid var(--color-outline-variant)'}}>
                               {k.replace(/_/g,' ')}
                             </span>
                           ))}
@@ -1212,8 +1257,8 @@ export default function StaffDashboard() {
                       )}
                     </div>
                   </div>
-                  {s.role!=='super_admin' && (
-                    <div className="flex gap-2 shrink-0">
+                  <div className="flex gap-2 shrink-0">
+                    {canEdit && (
                       <button onClick={()=>{
                         setStaffModalMode('edit')
                         const perms = typeof s.permissions==='string'?JSON.parse(s.permissions||'{}'):(s.permissions||{})
@@ -1222,18 +1267,22 @@ export default function StaffDashboard() {
                       }} className="glass px-4 py-2 rounded-xl text-secondary-fixed text-xs font-bold hover:bg-secondary-fixed/5 transition-colors flex items-center gap-1">
                         <span className="material-symbols-outlined text-base">edit</span>{t('Edit','تعديل')}
                       </button>
+                    )}
+                    {canDelete && (
                       <button onClick={async()=>{
                         if(!confirm(t(`Remove ${s.display_name||s.username}?`,`إزالة ${s.display_name||s.username}؟`)))return
                         const res=await fetch(`${API}/api/admin/staff/${s.id}`,{method:'DELETE',headers:hdrs})
-                        if(res.ok){showToast(t('Staff removed','تم حذف الموظف'));loadStaff()}
-                        else showToast(t('Error','خطأ'),'error')
+                        const data=await res.json()
+                        if(res.ok){showToast(t('Removed','تم الحذف'));loadStaff()}
+                        else showToast(data.error||t('Error','خطأ'),'error')
                       }} className="glass px-4 py-2 rounded-xl text-error text-xs font-bold hover:bg-error/5 transition-colors flex items-center gap-1">
                         <span className="material-symbols-outlined text-base">delete</span>{t('Remove','إزالة')}
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              ))}
+                )
+              })}
               {staffList.length===0&&!staffLoading&&(
                 <div className="glass rounded-2xl p-12 text-center">
                   <span className="material-symbols-outlined text-on-surface-variant text-5xl mb-3 block">group_off</span>
