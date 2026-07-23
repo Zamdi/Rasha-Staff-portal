@@ -9,7 +9,7 @@ import ThemeToggle from '../components/ThemeToggle'
 const MODAL_BLANK = { firstName: '', lastName: '', email: '', phone: '', password: '' }
 
 export default function StaffDashboard() {
-  const { t, staffToken, setStaffToken, showToast, lang, toggleLang, isSuperAdmin, staffName } = useStaff()
+  const { t, staffToken, setStaffToken, showToast, lang, toggleLang, isSuperAdmin, staffName, staffRole } = useStaff()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('dashboard')
   const [stats, setStats] = useState(null)
@@ -58,6 +58,14 @@ export default function StaffDashboard() {
 
   useEffect(() => {
     if (!staffToken) { navigate('/'); return }
+    // Refresh role from server in case it was changed
+    fetch(`${API}/api/admin/staff/me`, { headers: hdrs })
+      .then(r => r.json())
+      .then(data => {
+        if (data.role && data.role !== staffRole) {
+          setStaffToken(staffToken, data.role, data.permissions || {}, staffName)
+        }
+      }).catch(() => {})
     loadData()
     loadInventory()
   }, [staffToken])
